@@ -20,8 +20,6 @@ export default function LeadConversionModal({
   const [conversionType, setConversionType] = useState<"customer" | "opportunity">("opportunity");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!isOpen) return null;
-
   const handleConvert = async () => {
     setIsSubmitting(true);
     try {
@@ -42,6 +40,8 @@ export default function LeadConversionModal({
       setIsSubmitting(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   X,
   ArrowRight,
@@ -35,14 +35,26 @@ export default function OpportunityStageTransitionModal({
   nextStage,
   onSuccess,
 }: Props) {
+  // All hooks MUST be declared unconditionally at the top level
   const [note, setNote] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [uploadProgressText, setUploadProgressText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
 
-  if (!isOpen) return null;
+  // Reset modal state cleanly whenever it is opened or closed
+  useEffect(() => {
+    if (isOpen) {
+      setNote("");
+      setFiles([]);
+      setIsSubmitting(false);
+      setErrorMessage(null);
+      setUploadProgressText("");
+      submittingRef.current = false;
+    }
+  }, [isOpen]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -57,8 +69,6 @@ export default function OpportunityStageTransitionModal({
   const handleRemoveFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
-
-  const submittingRef = useRef(false);
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -119,6 +129,9 @@ export default function OpportunityStageTransitionModal({
       setUploadProgressText("");
     }
   };
+
+  // Conditional return strictly after ALL hooks have been registered
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
