@@ -92,6 +92,16 @@ export default defineConfig(({ mode }) => {
             });
           },
         },
+        "/files": {
+          target: proxyTarget,
+          changeOrigin: true,
+          secure: false,
+        },
+        "/private/files": {
+          target: proxyTarget,
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
   };

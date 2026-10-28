@@ -1,5 +1,6 @@
 import {
   Boxes,
+  Briefcase,
   FileSearch,
   LayoutDashboard,
   Shield,
@@ -13,7 +14,7 @@ import type { NavChild, NavGroup, NavItem } from "../utils/routes";
 import { NAV_GROUPS } from "../utils/routes";
 
 /** Application roles — mapped from ERPNext login email or ERPNext roles. */
-export type AppRole = "admin" | "procurement" | "finance" | "warehouse" | "legal";
+export type AppRole = "admin" | "procurement" | "finance" | "warehouse" | "legal" | "crm";
 
 export const ROLE_LABELS: Record<AppRole, string> = {
   admin: "Administrator",
@@ -21,6 +22,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   finance: "Finance Manager",
   warehouse: "Warehouse Manager",
   legal: "Legal Reviewer",
+  crm: "CRM Manager",
 };
 
 /** Default landing route after login per role. */
@@ -30,6 +32,7 @@ export const ROLE_HOME: Record<AppRole, string> = {
   finance: "/dashboard",
   warehouse: "/dashboard",
   legal: "/sourcing/legal-reviews",
+  crm: "/crm/dashboard",
 };
 
 /** Known role users (email → role). Comparison is case-insensitive. */
@@ -39,6 +42,7 @@ export const ROLE_USER_EMAILS: Record<string, AppRole> = {
   "finance@netlink.com": "finance",
   "warehouse@netlink.com": "warehouse",
   "legal@netlink.com": "legal",
+  "crm@netlink.com": "crm",
 };
 
 /**
@@ -58,6 +62,11 @@ export const ERPNEXT_ROLE_MAP: Record<string, AppRole> = {
   "Stock User": "warehouse",
   "Warehouse Manager": "warehouse",
   "Legal Reviewer": "legal",
+  "Sales Manager": "crm",
+  "Sales User": "crm",
+  "Sales Master Manager": "crm",
+  "CRM Manager": "crm",
+  "CRM User": "crm",
 };
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -77,7 +86,8 @@ type NavModuleId =
   | "suppliers"
   | "inventory"
   | "budget"
-  | "admin-audit";
+  | "admin-audit"
+  | "crm";
 
 type P2PChildId =
   | "requisitions"
@@ -154,6 +164,19 @@ const SUPPLIERS_CHILDREN: NavChild[] = [
   { label: "Supplier Performance", to: "/suppliers?tab=performance" },
 ];
 
+const CRM_CHILDREN: NavChild[] = [
+  { label: "Dashboard", to: "/crm/dashboard" },
+  { label: "Leads", to: "/crm/leads" },
+  { label: "Opportunities", to: "/crm/opportunities" },
+  { label: "Sales Pipeline", to: "/crm/pipeline" },
+  { label: "Customers", to: "/crm/customers" },
+  { label: "Contacts", to: "/crm/contacts" },
+  { label: "Addresses", to: "/crm/addresses" },
+  { label: "Campaigns", to: "/crm/campaigns" },
+  { label: "Reports", to: "/crm/reports" },
+  { label: "Masters & Setup", to: "/crm/setup" },
+];
+
 const MODULE_ICONS: Record<NavModuleId, LucideIcon> = {
   dashboard: LayoutDashboard,
   sourcing: FileSearch,
@@ -162,6 +185,7 @@ const MODULE_ICONS: Record<NavModuleId, LucideIcon> = {
   inventory: Boxes,
   budget: Wallet,
   "admin-audit": Shield,
+  crm: Briefcase,
 };
 
 interface RoleNavConfig {
@@ -172,9 +196,14 @@ interface RoleNavConfig {
 }
 
 const ROLE_NAV_CONFIG: Record<AppRole, RoleNavConfig> = {
-  // Admin — governance, user access, audit, and system administration only.
+  // Admin — governance, user access, audit, system administration, and CRM oversight.
   admin: {
-    modules: ["admin-audit"],
+    modules: ["admin-audit", "crm"],
+    p2pChildren: [],
+  },
+  // CRM Manager — Leads, Opportunities, Pipeline, Customers, Reports, Setup.
+  crm: {
+    modules: ["crm"],
     p2pChildren: [],
   },
   // Procurement Manager — sourcing → PO → GRN → Voucher workflow. Invoices are
@@ -252,7 +281,7 @@ export function resolveRoleFromUser(user: {
  * Admin > Legal > Finance > Warehouse > Procurement (priority order).
  */
 export function resolveFromErpNextRoles(erpRoles: string[]): AppRole | null {
-  const priorityOrder: AppRole[] = ["admin", "legal", "finance", "warehouse", "procurement"];
+  const priorityOrder: AppRole[] = ["admin", "crm", "legal", "finance", "warehouse", "procurement"];
   const resolved = new Set<AppRole>();
 
   for (const erpRole of erpRoles) {
@@ -370,6 +399,13 @@ function buildNavItem(id: NavModuleId, role: AppRole): NavItem {
           { label: "System Settings", to: "/admin/settings" },
         ],
       };
+    case "crm":
+      return {
+        label: "CRM",
+        to: "/crm/dashboard",
+        icon: MODULE_ICONS.crm,
+        children: CRM_CHILDREN,
+      };
   }
 }
 
@@ -416,6 +452,9 @@ function getAccessPrefixesForRole(role: AppRole): string[] {
         break;
       case "admin-audit":
         prefixes.add("/admin");
+        break;
+      case "crm":
+        prefixes.add("/crm");
         break;
       case "p2p":
         // Only the role's explicitly granted P2P children are reachable —

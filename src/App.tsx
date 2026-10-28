@@ -164,6 +164,25 @@ const BudgetMonitoringPage = lazy(() => import("./pages/budget/BudgetMonitoringP
 const BudgetApprovalsPage = lazy(() => import("./pages/budget/BudgetApprovalsPage"));
 const FinanceReviewsPage = lazy(() => import("./pages/budget/FinanceReviewsPage"));
 const NotificationCenterPage = lazy(() => import("./pages/notifications/NotificationCenterPage"));
+
+// CRM Pages
+const CrmDashboardPage = lazy(() => import("./pages/crm/CrmDashboardPage"));
+const LeadsListPage = lazy(() => import("./pages/crm/LeadsListPage"));
+const LeadDetailPage = lazy(() => import("./pages/crm/LeadDetailPage"));
+const LeadCreateEditPage = lazy(() => import("./pages/crm/LeadCreateEditPage"));
+const OpportunitiesListPage = lazy(() => import("./pages/crm/OpportunitiesListPage"));
+const OpportunityDetailPage = lazy(() => import("./pages/crm/OpportunityDetailPage"));
+const OpportunityCreateEditPage = lazy(() => import("./pages/crm/OpportunityCreateEditPage"));
+const SalesPipelinePage = lazy(() => import("./pages/crm/SalesPipelinePage"));
+const CustomersListPage = lazy(() => import("./pages/crm/CustomersListPage"));
+const CustomerDetailPage = lazy(() => import("./pages/crm/CustomerDetailPage"));
+const ContactsListPage = lazy(() => import("./pages/crm/ContactsListPage"));
+const AddressesListPage = lazy(() => import("./pages/crm/AddressesListPage"));
+const CampaignsListPage = lazy(() => import("./pages/crm/CampaignsListPage"));
+const CampaignDetailPage = lazy(() => import("./pages/crm/CampaignDetailPage"));
+const CrmReportsPage = lazy(() => import("./pages/crm/CrmReportsPage"));
+const CrmSetupPage = lazy(() => import("./pages/crm/CrmSetupPage"));
+
 import { useAuthStore } from "./store/authStore";
 import { getRFQSchema } from "./api/rfqSchema";
 
@@ -435,6 +454,27 @@ function App() {
             <Route path="/admin/security-settings" element={<SecuritySettingsPage />} />
             <Route path="/admin/settings" element={<SystemSettingsPage />} />
             <Route path="/admin/integrations" element={<IntegrationsPage />} />
+
+            {/* CRM Module (Authorized for CRM Manager and Admin) */}
+            <Route path="/crm" element={<Navigate to="/crm/dashboard" replace />} />
+            <Route path="/crm/dashboard" element={<CrmDashboardPage />} />
+            <Route path="/crm/leads" element={<LeadsListPage />} />
+            <Route path="/crm/leads/new" element={<LeadCreateEditPage />} />
+            <Route path="/crm/leads/:name" element={<LeadDetailPage />} />
+            <Route path="/crm/leads/:name/edit" element={<LeadCreateEditPage />} />
+            <Route path="/crm/opportunities" element={<OpportunitiesListPage />} />
+            <Route path="/crm/opportunities/new" element={<OpportunityCreateEditPage />} />
+            <Route path="/crm/opportunities/:name" element={<OpportunityDetailPage />} />
+            <Route path="/crm/opportunities/:name/edit" element={<OpportunityCreateEditPage />} />
+            <Route path="/crm/pipeline" element={<SalesPipelinePage />} />
+            <Route path="/crm/customers" element={<CustomersListPage />} />
+            <Route path="/crm/customers/:name" element={<CustomerDetailPage />} />
+            <Route path="/crm/contacts" element={<ContactsListPage />} />
+            <Route path="/crm/addresses" element={<AddressesListPage />} />
+            <Route path="/crm/campaigns" element={<CampaignsListPage />} />
+            <Route path="/crm/campaigns/:name" element={<CampaignDetailPage />} />
+            <Route path="/crm/reports" element={<CrmReportsPage />} />
+            <Route path="/crm/setup" element={<CrmSetupPage />} />
 
             {/* Inventory */}
             <Route path="/inventory" element={<InventoryPage />} />

@@ -74,7 +74,7 @@ function buildTargetUrl(query: VercelRequest["query"], apiPath: string): string 
   return `${base}/api/${apiPath}${buildSearch(query)}`;
 }
 
-function upstreamHeaders(req: VercelRequest): Record<string, string> {
+function upstreamHeaders(req: VercelRequest, apiPath: string): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: "application/json",
   };
@@ -86,9 +86,21 @@ function upstreamHeaders(req: VercelRequest): Record<string, string> {
     headers["Content-Type"] = "application/json";
   }
 
-  const creds = readApiCredentials();
-  if (creds) {
-    headers.Authorization = `token ${creds.key}:${creds.secret}`;
+  const isAuthEndpoint =
+    apiPath === "method/login" || apiPath === "method/logout";
+
+  if (isAuthEndpoint) {
+    if (req.headers.cookie) {
+      headers.Cookie = req.headers.cookie;
+    }
+  } else {
+    const creds = readApiCredentials();
+    if (creds) {
+      headers.Authorization = `token ${creds.key}:${creds.secret}`;
+    }
+    if (req.headers.cookie) {
+      headers.Cookie = req.headers.cookie;
+    }
   }
 
   return headers;
@@ -157,7 +169,7 @@ export default async function handler(
   try {
     const upstream = await fetch(targetUrl, {
       method,
-      headers: upstreamHeaders(req),
+      headers: upstreamHeaders(req, apiPath),
       body,
     });
 

@@ -8,6 +8,7 @@ import type { AppRole } from "../../config/roles";
 const FinanceDashboard = lazy(() => import("../../components/dashboard/FinanceDashboard"));
 const LegalDashboard = lazy(() => import("../../components/dashboard/LegalDashboard"));
 const WarehouseDashboard = lazy(() => import("../../components/dashboard/WarehouseDashboard"));
+const CrmDashboardPage = lazy(() => import("../crm/CrmDashboardPage"));
 
 function DashFallback() {
   return (
@@ -43,6 +44,14 @@ export default function DashboardPage() {
     return (
       <Suspense fallback={<DashFallback />}>
         <LegalDashboard greetingName={greetingName} />
+      </Suspense>
+    );
+  }
+
+  if (role === "crm") {
+    return (
+      <Suspense fallback={<DashFallback />}>
+        <CrmDashboardPage />
       </Suspense>
     );
   }

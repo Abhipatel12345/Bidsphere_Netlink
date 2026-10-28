@@ -209,6 +209,12 @@ export const DASHBOARD_BY_ROLE: Record<AppRole, RoleDashboardConfig> = {
     roleLabel: ROLE_LABELS.legal,
     statusLabel: "Legal",
   },
+  crm: {
+    title: "CRM Manager Dashboard",
+    subtitle: "Track leads, deals, sales pipeline and customer revenue",
+    roleLabel: ROLE_LABELS.crm,
+    statusLabel: "CRM Live",
+  },
 };
 
 /** Supplier portal dashboard copy (separate auth surface). */
@@ -220,7 +226,7 @@ export const SUPPLIER_DASHBOARD_CONFIG: RoleDashboardConfig = {
 };
 
 const EXECUTIVE_LAYOUT_BY_ROLE: Record<
-  Exclude<AppRole, "warehouse" | "legal">,
+  Exclude<AppRole, "warehouse" | "legal" | "crm">,
   ExecutiveDashboardLayout
 > = {
   admin: {
@@ -263,14 +269,14 @@ export function getDashboardConfig(role: AppRole): RoleDashboardConfig {
 }
 
 export function getExecutiveDashboardLayout(
-  role: Exclude<AppRole, "warehouse" | "legal">
+  role: Exclude<AppRole, "warehouse" | "legal" | "crm">
 ): ExecutiveDashboardLayout {
   return EXECUTIVE_LAYOUT_BY_ROLE[role] ?? EXECUTIVE_LAYOUT_BY_ROLE.admin;
 }
 
 export function filterActivityByRole(
   items: ActivityFeedItem[],
-  role: Exclude<AppRole, "warehouse" | "legal">
+  role: Exclude<AppRole, "warehouse" | "legal" | "crm">
 ): ActivityFeedItem[] {
   const { activityTypes } = getExecutiveDashboardLayout(role);
   if (activityTypes === "all") return items;

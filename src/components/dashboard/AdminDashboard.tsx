@@ -37,7 +37,7 @@ import {
 const AdminSpendCharts = lazy(() => import("./AdminSpendCharts"));
 
 interface Props {
-  role: Exclude<AppRole, "warehouse" | "legal">;
+  role: Exclude<AppRole, "warehouse" | "legal" | "crm">;
   greetingName: string;
 }
 

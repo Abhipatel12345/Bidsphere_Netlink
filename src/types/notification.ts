@@ -25,7 +25,8 @@ export type NotificationModule =
   | "RFQ Invitation"
   | "Quotation Status"
   | "Invoice Status"
-  | "Payment Status";
+  | "Payment Status"
+  | "CRM";
 
 export type NotificationTargetRole = AppRole | "supplier";
 
@@ -86,6 +87,7 @@ export const ROLE_ALLOWED_MODULES: Record<
     "Outstanding Payables",
   ]),
   warehouse: new Set(["PO Ready for GRN", "GRN", "Inventory"]),
+  crm: new Set(["CRM", "System", "Workflow"]),
 };
 
 export const SUPPLIER_ALLOWED_MODULES = new Set<NotificationModule>([
