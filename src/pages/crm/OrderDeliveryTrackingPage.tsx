@@ -10,11 +10,13 @@ import {
   ExternalLink,
   Package,
   Download,
+  ShoppingCart,
 } from "lucide-react";
 import { getOrderDeliveryTracking } from "../../api/crm";
 import { exportReportToCsv } from "../../api/crmReports";
 import ComplaintModal from "../../components/crm/ComplaintModal";
 import OrderDeliveryDetailModal, { computeDeliveryMilestones } from "../../components/crm/OrderDeliveryDetailModal";
+import CreateSalesOrderModal from "../../components/crm/CreateSalesOrderModal";
 import type { ComplaintDoc, OrderDeliveryTrackingRecord } from "../../types/crm";
 
 export default function OrderDeliveryTrackingPage() {
@@ -25,6 +27,7 @@ export default function OrderDeliveryTrackingPage() {
   const [search, setSearch] = useState(customerParam || orderParam || "");
   const [statusFilter, setStatusFilter] = useState("");
   const [isComplaintModalOpen, setIsComplaintModalOpen] = useState(false);
+  const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
   const [complaintInitialData, setComplaintInitialData] = useState<Partial<ComplaintDoc>>({});
   const [selectedRecord, setSelectedRecord] = useState<OrderDeliveryTrackingRecord | null>(null);
 
@@ -123,6 +126,15 @@ export default function OrderDeliveryTrackingPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsCreateOrderOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 transition-colors"
+          >
+            <ShoppingCart className="h-3.5 w-3.5" />
+            + Create Sales Order
+          </button>
+
           <button
             type="button"
             onClick={handleExportCsv}
@@ -513,6 +525,9 @@ export default function OrderDeliveryTrackingPage() {
         isOpen={!!selectedRecord}
         onClose={() => setSelectedRecord(null)}
         record={selectedRecord || undefined}
+        onOrderSubmitted={() => {
+          void refetch();
+        }}
         onOpenComplaint={(rec) => handleOpenComplaint(rec)}
       />
 
@@ -526,6 +541,15 @@ export default function OrderDeliveryTrackingPage() {
         initialData={complaintInitialData}
         initialCustomer={complaintInitialData.customer}
         title="Register Order/Delivery Issue"
+      />
+
+      {/* Create Sales Order Modal */}
+      <CreateSalesOrderModal
+        isOpen={isCreateOrderOpen}
+        onClose={() => setIsCreateOrderOpen(false)}
+        onSuccess={() => {
+          void refetch();
+        }}
       />
     </div>
   );

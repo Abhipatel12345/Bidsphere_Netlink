@@ -196,11 +196,19 @@ export default function CustomersListPage() {
                     </td>
 
                     <td className="py-3 px-4 text-neutral-700">
-                      {cust.customer_group || "—"}
+                      {cust.customer_group ? (
+                        <span className="font-medium text-neutral-800">{cust.customer_group}</span>
+                      ) : (
+                        <span className="text-neutral-400 italic">Not provided</span>
+                      )}
                     </td>
 
                     <td className="py-3 px-4 text-neutral-700">
-                      {cust.territory || "—"}
+                      {cust.territory ? (
+                        <span className="font-medium text-neutral-800">{cust.territory}</span>
+                      ) : (
+                        <span className="text-neutral-400 italic">Not provided</span>
+                      )}
                     </td>
 
                     <td className="py-3 px-4">
@@ -210,7 +218,18 @@ export default function CustomersListPage() {
                     </td>
 
                     <td className="py-3 px-4 text-neutral-600">
-                      {cust.email_id || "—"}
+                      {cust.email_id ? (
+                        <div>
+                          <div className="font-medium text-neutral-800">{cust.email_id}</div>
+                          {cust.mobile_no && (
+                            <div className="text-[11px] text-neutral-400">{cust.mobile_no}</div>
+                          )}
+                        </div>
+                      ) : cust.mobile_no ? (
+                        <div className="text-neutral-700">{cust.mobile_no}</div>
+                      ) : (
+                        <span className="text-neutral-400 italic">Not provided</span>
+                      )}
                     </td>
 
                     <td className="py-3 px-4 text-right">

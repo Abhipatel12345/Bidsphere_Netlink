@@ -12,6 +12,10 @@ import {
   Users,
   MapPin,
   Plus,
+  ShoppingCart,
+  Mail,
+  Phone,
+  Building2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -23,6 +27,7 @@ import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import DocTypeModal from "../../components/crm/DocTypeModal";
 import ComplaintModal from "../../components/crm/ComplaintModal";
 import OrderDeliveryDetailModal from "../../components/crm/OrderDeliveryDetailModal";
+import CreateSalesOrderModal from "../../components/crm/CreateSalesOrderModal";
 import type { ComplaintDoc, OrderDeliveryTrackingRecord, SalesOrderDoc } from "../../types/crm";
 
 export default function CustomerDetailPage() {
@@ -34,6 +39,7 @@ export default function CustomerDetailPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isComplaintModalOpen, setIsComplaintModalOpen] = useState(false);
+  const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState<ComplaintDoc | undefined>();
   const [selectedTrackingRecord, setSelectedTrackingRecord] = useState<OrderDeliveryTrackingRecord | null>(null);
 
@@ -59,7 +65,11 @@ export default function CustomerDetailPage() {
   const contacts = c360?.contacts ?? [];
   const addresses = c360?.addresses ?? [];
 
-  const totalPipeline = opportunities.reduce(
+  // Derived calculations from actual ERPNext records
+  const openOpps = opportunities.filter(
+    (o) => o.status !== "Lost" && o.status !== "Closed"
+  );
+  const totalPipeline = openOpps.reduce(
     (sum, o) => sum + (Number(o.opportunity_amount) || 0),
     0
   );
@@ -67,6 +77,15 @@ export default function CustomerDetailPage() {
     (sum, o) => sum + (Number(o.grand_total) || 0),
     0
   );
+
+  const primaryContact = contacts[0];
+  const displayEmail = customer?.email_id || primaryContact?.email_id;
+  const displayPhone = customer?.mobile_no || primaryContact?.mobile_no || primaryContact?.phone;
+  const billingAddr = addresses.find((a) => a.address_type === "Billing") || addresses[0];
+  const shippingAddr =
+    addresses.find((a) => a.address_type === "Shipping") ||
+    addresses.find((a) => a.name !== billingAddr?.name) ||
+    billingAddr;
 
   const handleOpenOrderTracking = (so: SalesOrderDoc) => {
     const linkedDNs = deliveryNotes.filter((dn) =>
@@ -206,14 +225,23 @@ export default function CustomerDetailPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsCreateOrderOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors"
+          >
+            <ShoppingCart className="h-3.5 w-3.5" />
+            + Create Sales Order
+          </button>
+
           <button
             type="button"
             onClick={() => {
               setSelectedComplaint(undefined);
               setIsComplaintModalOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs font-semibold text-amber-900 shadow-sm hover:bg-amber-100"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs font-semibold text-amber-900 shadow-sm hover:bg-amber-100 transition-colors"
           >
             <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
             Register Complaint
@@ -221,7 +249,7 @@ export default function CustomerDetailPage() {
 
           <Link
             to={`/crm/opportunities/new?opportunity_from=Customer&party_name=${encodeURIComponent(customer.name)}`}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-primary-700"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-primary-700 transition-colors"
           >
             <TrendingUp className="h-3.5 w-3.5" />
             New Opportunity
@@ -230,7 +258,7 @@ export default function CustomerDetailPage() {
           <button
             type="button"
             onClick={() => setIsEditOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 shadow-sm hover:bg-neutral-50 transition-colors"
           >
             <Edit className="h-3.5 w-3.5" />
             Edit
@@ -239,7 +267,7 @@ export default function CustomerDetailPage() {
           <button
             type="button"
             onClick={() => setIsDeleteOpen(true)}
-            className="rounded-lg border border-red-200 bg-red-50 p-2 text-red-600 hover:bg-red-100"
+            className="rounded-lg border border-red-200 bg-red-50 p-2 text-red-600 hover:bg-red-100 transition-colors"
             title="Delete Customer"
           >
             <Trash2 className="h-4 w-4" />
@@ -247,17 +275,157 @@ export default function CustomerDetailPage() {
         </div>
       </div>
 
+      {/* Customer 360 Account Overview Panel */}
+      <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <div className="mb-3 flex items-center justify-between border-b border-neutral-100 pb-2.5">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-primary-600" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-800">
+              Customer 360° Account Overview
+            </h2>
+          </div>
+          <span className="rounded bg-neutral-100 px-2 py-0.5 text-[10px] font-mono text-neutral-600">
+            ERP DocType: Customer
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 text-xs">
+          {/* Card 1: Account Classification */}
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50/50 p-3.5 space-y-2">
+            <div className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider">
+              Account Profile
+            </div>
+            <div>
+              <div className="font-semibold text-neutral-900 text-sm truncate">
+                {customer.customer_name || customer.name}
+              </div>
+              <div className="font-mono text-[11px] text-neutral-400">ID: {customer.name}</div>
+            </div>
+            <div className="pt-1.5 border-t border-neutral-200/60 space-y-1">
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Customer Type:</span>
+                <span className="font-medium text-neutral-800">{customer.customer_type || "Company"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Customer Group:</span>
+                <span className="font-medium text-neutral-800">
+                  {customer.customer_group ? (
+                    customer.customer_group
+                  ) : (
+                    <span className="text-neutral-400 italic">Not provided</span>
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Territory:</span>
+                <span className="font-medium text-neutral-800">
+                  {customer.territory ? (
+                    customer.territory
+                  ) : (
+                    <span className="text-neutral-400 italic">Not provided</span>
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Primary Contact */}
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50/50 p-3.5 space-y-2">
+            <div className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5 text-neutral-400" />
+              Primary Contact
+            </div>
+            {primaryContact ? (
+              <div>
+                <div className="font-semibold text-neutral-900">
+                  {primaryContact.first_name} {primaryContact.last_name || ""}
+                </div>
+                <div className="text-[11px] text-neutral-500 truncate">
+                  {primaryContact.designation || primaryContact.department || "Designated Contact"}
+                </div>
+              </div>
+            ) : (
+              <div className="text-neutral-400 italic py-1">No linked contact assigned</div>
+            )}
+            <div className="pt-1.5 border-t border-neutral-200/60 space-y-1">
+              <div className="flex items-center gap-1.5 truncate">
+                <Mail className="h-3 w-3 text-neutral-400 flex-shrink-0" />
+                {displayEmail ? (
+                  <span className="text-neutral-800 font-medium truncate">{displayEmail}</span>
+                ) : (
+                  <span className="text-neutral-400 italic">Not provided</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 truncate">
+                <Phone className="h-3 w-3 text-neutral-400 flex-shrink-0" />
+                {displayPhone ? (
+                  <span className="text-neutral-800 font-medium truncate">{displayPhone}</span>
+                ) : (
+                  <span className="text-neutral-400 italic">Not provided</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Billing Address */}
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50/50 p-3.5 space-y-2">
+            <div className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-blue-500" />
+              Billing Address
+            </div>
+            {billingAddr ? (
+              <div className="space-y-0.5">
+                <div className="font-semibold text-neutral-900 truncate">{billingAddr.address_title}</div>
+                <div className="text-neutral-600 truncate">{billingAddr.address_line1}</div>
+                {billingAddr.address_line2 && (
+                  <div className="text-neutral-600 truncate">{billingAddr.address_line2}</div>
+                )}
+                <div className="text-neutral-500">
+                  {[billingAddr.city, billingAddr.state, billingAddr.pincode].filter(Boolean).join(", ")}
+                </div>
+                <div className="text-[11px] font-medium text-neutral-400">{billingAddr.country}</div>
+              </div>
+            ) : (
+              <div className="text-neutral-400 italic py-2">Not provided in ERPNext</div>
+            )}
+          </div>
+
+          {/* Card 4: Shipping Address */}
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50/50 p-3.5 space-y-2">
+            <div className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Truck className="h-3.5 w-3.5 text-emerald-600" />
+              Shipping Address
+            </div>
+            {shippingAddr ? (
+              <div className="space-y-0.5">
+                <div className="font-semibold text-neutral-900 truncate">{shippingAddr.address_title}</div>
+                <div className="text-neutral-600 truncate">{shippingAddr.address_line1}</div>
+                {shippingAddr.address_line2 && (
+                  <div className="text-neutral-600 truncate">{shippingAddr.address_line2}</div>
+                )}
+                <div className="text-neutral-500">
+                  {[shippingAddr.city, shippingAddr.state, shippingAddr.pincode].filter(Boolean).join(", ")}
+                </div>
+                <div className="text-[11px] font-medium text-neutral-400">{shippingAddr.country}</div>
+              </div>
+            ) : (
+              <div className="text-neutral-400 italic py-2">Not provided in ERPNext</div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Customer 360 Quick Stats Ribbon */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
           <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
             Pipeline Value
           </span>
-          <div className="mt-1 text-base font-bold text-neutral-900">
+          <div className="mt-1 text-xl font-bold text-neutral-900">
             ${totalPipeline.toLocaleString()}
           </div>
           <span className="text-[11px] text-neutral-500">
-            {opportunities.length} opportunities
+            {openOpps.length} open {openOpps.length === 1 ? "deal" : "deals"} ({opportunities.length} total)
           </span>
         </div>
 
@@ -265,11 +433,11 @@ export default function CustomerDetailPage() {
           <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
             Total Sales Orders
           </span>
-          <div className="mt-1 text-base font-bold text-neutral-900">
+          <div className="mt-1 text-xl font-bold text-neutral-900">
             ${totalOrdersValue.toLocaleString()}
           </div>
           <span className="text-[11px] text-neutral-500">
-            {salesOrders.length} orders placed
+            {salesOrders.length} {salesOrders.length === 1 ? "order" : "orders"} placed
           </span>
         </div>
 
@@ -277,7 +445,7 @@ export default function CustomerDetailPage() {
           <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
             Deliveries
           </span>
-          <div className="mt-1 text-base font-bold text-neutral-900">
+          <div className="mt-1 text-xl font-bold text-neutral-900">
             {deliveryNotes.length} Dispatched
           </div>
           <span className="text-[11px] text-neutral-500">
@@ -290,28 +458,19 @@ export default function CustomerDetailPage() {
             Complaints (Issues)
           </span>
           <div className="mt-1 flex items-center gap-2">
-            <span className="text-base font-bold text-amber-600">
+            <span className="text-xl font-bold text-amber-600">
               {complaints.length}
             </span>
             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
               {complaints.filter((c) => c.status === "Open").length} open
             </span>
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+              {complaints.filter((c) => c.status === "Resolved" || c.status === "Closed").length} resolved
+            </span>
           </div>
           <span className="text-[11px] text-neutral-500">
             Logged in Helpdesk
           </span>
-        </div>
-
-        <div className="col-span-2 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm sm:col-span-4 lg:col-span-1">
-          <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-            Account Info
-          </span>
-          <div className="mt-1 truncate text-xs font-medium text-neutral-700">
-            Group: {customer.customer_group || "—"}
-          </div>
-          <div className="truncate text-xs font-medium text-neutral-700">
-            Territory: {customer.territory || "—"}
-          </div>
         </div>
       </div>
 
@@ -440,9 +599,31 @@ export default function CustomerDetailPage() {
           {/* Sales Orders Tab */}
           {activeTab === "orders" && (
             <div>
+              <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs text-neutral-500">
+                  Sales Orders linked to {customer.customer_name || customer.name} in ERPNext
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOrderOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-xs"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  + Create Sales Order
+                </button>
+              </div>
+
               {salesOrders.length === 0 ? (
-                <div className="py-8 text-center text-xs text-neutral-400">
-                  No sales orders found for this customer in ERPNext.
+                <div className="py-12 text-center text-xs text-neutral-500 space-y-3">
+                  <div>No sales orders found for this customer in ERPNext.</div>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateOrderOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    + Create First Sales Order
+                  </button>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -740,6 +921,9 @@ export default function CustomerDetailPage() {
         isOpen={!!selectedTrackingRecord}
         onClose={() => setSelectedTrackingRecord(null)}
         record={selectedTrackingRecord || undefined}
+        onOrderSubmitted={() => {
+          void refetch();
+        }}
         onOpenComplaint={(rec) => {
           setSelectedComplaint({
             customer: rec.salesOrder.customer,
@@ -751,6 +935,16 @@ export default function CustomerDetailPage() {
           } as ComplaintDoc);
           setIsComplaintModalOpen(true);
         }}
+      />
+
+      <CreateSalesOrderModal
+        isOpen={isCreateOrderOpen}
+        onClose={() => setIsCreateOrderOpen(false)}
+        onSuccess={() => {
+          void refetch();
+        }}
+        initialCustomer={customer.name}
+        initialCustomerName={customer.customer_name || customer.name}
       />
     </div>
   );

@@ -745,8 +745,37 @@ export async function getCustomers(
       .catch(() => null),
   ]);
 
-  const customers = parseRecords<Customer>(listRes);
-  const total = countRes !== null ? parseCount(countRes) : customers.length;
+  const rawCustomers = parseRecords<Customer>(listRes);
+  const total = countRes !== null ? parseCount(countRes) : rawCustomers.length;
+
+  // Enrich customers lacking direct email or phone from linked Contact records in parallel
+  const customers = await Promise.all(
+    rawCustomers.map(async (cust) => {
+      if (!cust.email_id || !cust.mobile_no) {
+        try {
+          const filter = JSON.stringify([
+            ["Dynamic Link", "link_doctype", "=", "Customer"],
+            ["Dynamic Link", "link_name", "=", cust.name],
+          ]);
+          const cRes = await erpnext.get<unknown>(
+            `/api/resource/Contact?filters=${encodeURIComponent(filter)}&fields=["email_id","mobile_no","phone"]&limit_page_length=1`,
+            { _silent: true } as unknown as import("axios").AxiosRequestConfig
+          );
+          const contact = parseRecords<Contact>(cRes)[0];
+          if (contact) {
+            return {
+              ...cust,
+              email_id: cust.email_id || contact.email_id || "",
+              mobile_no: cust.mobile_no || contact.mobile_no || contact.phone || "",
+            };
+          }
+        } catch {
+          // ignore
+        }
+      }
+      return cust;
+    })
+  );
 
   return { customers, total };
 }
@@ -755,7 +784,24 @@ export async function getCustomer(name: string): Promise<Customer> {
   const res = await erpnext.get<unknown>(
     `/api/resource/Customer/${encodeURIComponent(name)}`
   );
-  return parseDoc<Customer>(res);
+  const cust = parseDoc<Customer>(res);
+  if (cust && (!cust.email_id || !cust.mobile_no)) {
+    try {
+      const contacts = await getContactsForDoc("Customer", cust.name);
+      const primaryContact = contacts[0];
+      if (primaryContact) {
+        if (!cust.email_id && primaryContact.email_id) {
+          cust.email_id = primaryContact.email_id;
+        }
+        if (!cust.mobile_no && (primaryContact.mobile_no || primaryContact.phone)) {
+          cust.mobile_no = primaryContact.mobile_no || primaryContact.phone;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return cust;
 }
 
 export async function createCustomer(
@@ -809,12 +855,20 @@ export async function getCustomerRelatedRecords(customerName: string): Promise<{
   contacts: Contact[];
   addresses: Address[];
 }> {
-  const [opps, contacts, addresses] = await Promise.all([
+  const [oppsParty, oppsCustomer, contacts, addresses] = await Promise.all([
     erpnext
       .get<unknown>(
         `/api/resource/Opportunity?filters=${encodeURIComponent(
           JSON.stringify([["party_name", "=", customerName]])
-        )}&fields=["name","title","sales_stage","status","opportunity_amount","expected_closing","modified"]`
+        )}&fields=["name","title","sales_stage","status","opportunity_amount","expected_closing","modified"]&limit_page_length=100`
+      )
+      .then((r) => parseRecords<Opportunity>(r))
+      .catch(() => []),
+    erpnext
+      .get<unknown>(
+        `/api/resource/Opportunity?filters=${encodeURIComponent(
+          JSON.stringify([["customer_name", "=", customerName]])
+        )}&fields=["name","title","sales_stage","status","opportunity_amount","expected_closing","modified"]&limit_page_length=100`
       )
       .then((r) => parseRecords<Opportunity>(r))
       .catch(() => []),
@@ -822,7 +876,13 @@ export async function getCustomerRelatedRecords(customerName: string): Promise<{
     getAddressesForDoc("Customer", customerName).catch(() => []),
   ]);
 
-  return { opportunities: opps, contacts, addresses };
+  // Deduplicate opportunities by name
+  const oppMap = new Map<string, Opportunity>();
+  for (const o of [...oppsParty, ...oppsCustomer]) {
+    if (o.name) oppMap.set(o.name, o);
+  }
+
+  return { opportunities: Array.from(oppMap.values()), contacts, addresses };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -919,16 +979,29 @@ export async function deleteContact(name: string): Promise<void> {
   await erpnext.delete(`/api/resource/Contact/${encodeURIComponent(name)}`);
 }
 
-export async function getContactsForDoc(_link_doctype: string, link_name: string): Promise<Contact[]> {
+export async function getContactsForDoc(link_doctype: string, link_name: string): Promise<Contact[]> {
   try {
+    // 1. Primary standard Frappe relationship query via Dynamic Link child table
     const filter = JSON.stringify([
-      ["Contact", "name", "like", `%${link_name}%`],
+      ["Dynamic Link", "link_doctype", "=", link_doctype],
+      ["Dynamic Link", "link_name", "=", link_name],
     ]);
     const res = await erpnext.get<unknown>(
-      `/api/resource/Contact?filters=${encodeURIComponent(filter)}&fields=["name","first_name","last_name","email_id","mobile_no","phone","designation","company_name"]&limit_page_length=50`,
+      `/api/resource/Contact?filters=${encodeURIComponent(filter)}&fields=["name","first_name","last_name","email_id","mobile_no","phone","designation","department","company_name"]&limit_page_length=50`,
       { _silent: true } as unknown as import("axios").AxiosRequestConfig
     );
-    return parseRecords<Contact>(res);
+    const records = parseRecords<Contact>(res);
+    if (records.length > 0) return records;
+
+    // 2. Fallback: query by company_name for company contacts
+    const fallbackFilter = JSON.stringify([
+      ["Contact", "company_name", "=", link_name],
+    ]);
+    const fallbackRes = await erpnext.get<unknown>(
+      `/api/resource/Contact?filters=${encodeURIComponent(fallbackFilter)}&fields=["name","first_name","last_name","email_id","mobile_no","phone","designation","department","company_name"]&limit_page_length=50`,
+      { _silent: true } as unknown as import("axios").AxiosRequestConfig
+    );
+    return parseRecords<Contact>(fallbackRes);
   } catch {
     return [];
   }
@@ -1011,17 +1084,30 @@ export async function deleteAddress(name: string): Promise<void> {
   await erpnext.delete(`/api/resource/Address/${encodeURIComponent(name)}`);
 }
 
-export async function getAddressesForDoc(_link_doctype: string, link_name: string): Promise<Address[]> {
+export async function getAddressesForDoc(link_doctype: string, link_name: string): Promise<Address[]> {
   try {
-    const firstWord = link_name.split(" ")[0] || link_name;
+    // 1. Primary standard Frappe relationship query via Dynamic Link child table
     const filter = JSON.stringify([
-      ["Address", "address_title", "like", `%${firstWord}%`],
+      ["Dynamic Link", "link_doctype", "=", link_doctype],
+      ["Dynamic Link", "link_name", "=", link_name],
     ]);
     const res = await erpnext.get<unknown>(
-      `/api/resource/Address?filters=${encodeURIComponent(filter)}&fields=["name","address_title","address_type","address_line1","city","state","country","pincode"]&limit_page_length=50`,
+      `/api/resource/Address?filters=${encodeURIComponent(filter)}&fields=["name","address_title","address_type","address_line1","address_line2","city","state","country","pincode","phone","email_id"]&limit_page_length=50`,
       { _silent: true } as unknown as import("axios").AxiosRequestConfig
     );
-    return parseRecords<Address>(res);
+    const records = parseRecords<Address>(res);
+    if (records.length > 0) return records;
+
+    // 2. Fallback: query by address_title prefix
+    const firstWord = link_name.split(" ")[0] || link_name;
+    const fallbackFilter = JSON.stringify([
+      ["Address", "address_title", "like", `%${firstWord}%`],
+    ]);
+    const fallbackRes = await erpnext.get<unknown>(
+      `/api/resource/Address?filters=${encodeURIComponent(fallbackFilter)}&fields=["name","address_title","address_type","address_line1","address_line2","city","state","country","pincode","phone","email_id"]&limit_page_length=50`,
+      { _silent: true } as unknown as import("axios").AxiosRequestConfig
+    );
+    return parseRecords<Address>(fallbackRes);
   } catch {
     return [];
   }
@@ -1788,13 +1874,22 @@ export async function getSalesOrders(params: {
       "transaction_date",
       "delivery_date",
       "status",
+      "docstatus",
       "delivery_status",
       "per_delivered",
       "per_billed",
+      "net_total",
       "grand_total",
       "currency",
       "company",
       "order_type",
+      "selling_price_list",
+      "customer_address",
+      "shipping_address_name",
+      "contact_person",
+      "contact_email",
+      "contact_mobile",
+      "payment_terms_template",
       "creation",
       "modified",
     ]),
@@ -1813,6 +1908,125 @@ export async function getSalesOrders(params: {
 export async function getSalesOrder(name: string): Promise<SalesOrderDoc> {
   const res = await erpnext.get<unknown>(`/api/resource/Sales%20Order/${encodeURIComponent(name)}`);
   return parseDoc<SalesOrderDoc>(res);
+}
+
+export async function createSalesOrder(
+  data: Partial<SalesOrderDoc> | Record<string, unknown>
+): Promise<SalesOrderDoc> {
+  const payload: Record<string, unknown> = {
+    doctype: "Sales Order",
+    company: "Netlink",
+    currency: "USD",
+    selling_price_list: "Standard Selling",
+    order_type: "Sales",
+    ...data,
+  };
+
+  try {
+    const res = await erpnext.post<unknown>(
+      "/api/resource/Sales Order",
+      payload,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { _silent: true } as any
+    );
+    return parseDoc<SalesOrderDoc>(res);
+  } catch (err) {
+    const msg = extractFrappeErrorMessage(err);
+    throw new Error(msg);
+  }
+}
+
+export async function submitSalesOrder(name: string): Promise<SalesOrderDoc> {
+  try {
+    // 1. Fetch latest doc to avoid timestamp mismatch error
+    const latestDoc = await getSalesOrder(name);
+
+    // 2. Submit document using standard Frappe RPC endpoint
+    const res = await erpnext.post<unknown>(
+      "/api/method/frappe.client.submit",
+      {
+        doc: JSON.stringify(latestDoc),
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { _silent: true } as any
+    );
+    return parseDoc<SalesOrderDoc>(res);
+  } catch (err) {
+    const msg = extractFrappeErrorMessage(err);
+    throw new Error(msg);
+  }
+}
+
+export async function updateSalesOrder(
+  name: string,
+  data: Partial<SalesOrderDoc> | Record<string, unknown>
+): Promise<SalesOrderDoc> {
+  try {
+    const res = await erpnext.put<unknown>(
+      `/api/resource/Sales%20Order/${encodeURIComponent(name)}`,
+      data,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { _silent: true } as any
+    );
+    return parseDoc<SalesOrderDoc>(res);
+  } catch (err) {
+    const msg = extractFrappeErrorMessage(err);
+    throw new Error(msg);
+  }
+}
+
+export async function getItems(
+  search?: string
+): Promise<Array<{ name: string; item_name: string; item_group?: string; stock_uom?: string; standard_rate?: number; description?: string }>> {
+  const filters: [string, string, string, unknown][] = [["Item", "disabled", "=", 0]];
+  if (search?.trim()) {
+    const q = `%${search.trim()}%`;
+    filters.push(["Item", "item_name", "like", q]);
+  }
+
+  const queryParams = new URLSearchParams({
+    fields: JSON.stringify(["name", "item_name", "item_group", "stock_uom", "standard_rate", "description"]),
+    order_by: "item_name asc",
+    limit_page_length: "100",
+  });
+  if (filters.length > 0) {
+    queryParams.set("filters", JSON.stringify(filters));
+  }
+
+  try {
+    const res = await erpnext.get<unknown>(`/api/resource/Item?${queryParams.toString()}`);
+    return parseRecords(res);
+  } catch {
+    return [];
+  }
+}
+
+export async function getWarehouses(
+  company = "Netlink"
+): Promise<Array<{ name: string; warehouse_name: string; company?: string }>> {
+  const filters: [string, string, string, unknown][] = [["Warehouse", "is_group", "=", 0]];
+  if (company) {
+    filters.push(["Warehouse", "company", "=", company]);
+  }
+
+  const queryParams = new URLSearchParams({
+    fields: JSON.stringify(["name", "warehouse_name", "company"]),
+    order_by: "warehouse_name asc",
+    limit_page_length: "50",
+  });
+  if (filters.length > 0) {
+    queryParams.set("filters", JSON.stringify(filters));
+  }
+
+  try {
+    const res = await erpnext.get<unknown>(`/api/resource/Warehouse?${queryParams.toString()}`);
+    return parseRecords(res);
+  } catch {
+    return [
+      { name: "Stores - NSGAI", warehouse_name: "Stores", company: "Netlink" },
+      { name: "Finished Goods - NSGAI", warehouse_name: "Finished Goods", company: "Netlink" },
+    ];
+  }
 }
 
 export async function getDeliveryNotes(params: {
@@ -1873,11 +2087,15 @@ export async function getOrderDeliveryTracking(params: {
 
   // Fetch full details with line items for all orders
   const detailedOrders = await Promise.all(
-    salesOrders.map((so) => getSalesOrder(so.name).catch(() => so))
+    salesOrders.map((so) =>
+      so.items && so.items.length > 0 ? so : getSalesOrder(so.name).catch(() => so)
+    )
   );
 
   const detailedDNs = await Promise.all(
-    deliveryNotes.map((dn) => getDeliveryNote(dn.name).catch(() => dn))
+    deliveryNotes.map((dn) =>
+      dn.items && dn.items.length > 0 ? dn : getDeliveryNote(dn.name).catch(() => dn)
+    )
   );
 
   const results: OrderDeliveryTrackingRecord[] = detailedOrders.map((so) => {
@@ -1962,29 +2180,36 @@ export async function getCustomer360(customerName: string): Promise<{
 
   // 2. Fetch all related sub-resources in parallel with graceful fallbacks
   // so an issue or permission restriction on an optional sub-resource never crashes the customer view
-  const [related, salesOrders, deliveryNotes, complaintsRes] = await Promise.all([
+  const [related, rawSalesOrders, deliveryNotes, complaintsRes] = await Promise.all([
     getCustomerRelatedRecords(customerName).catch((err) => {
       console.warn(`[Customer360] Could not load related opps/contacts for ${customerName}:`, err);
       return { opportunities: [], contacts: [], addresses: [] };
     }),
-    getSalesOrders({ customer: customerName }).catch((err) => {
+    getSalesOrders({ customer: customerName, limit_page_length: 100 }).catch((err) => {
       console.warn(`[Customer360] Could not load sales orders for ${customerName}:`, err);
       return [];
     }),
-    getDeliveryNotes({ customer: customerName }).catch((err) => {
+    getDeliveryNotes({ customer: customerName, limit_page_length: 100 }).catch((err) => {
       console.warn(`[Customer360] Could not load delivery notes for ${customerName}:`, err);
       return [];
     }),
-    getComplaints({ customer: customerName }).catch((err) => {
+    getComplaints({ customer: customerName, limit_page_length: 100 }).catch((err) => {
       console.warn(`[Customer360] Could not load complaints for ${customerName}:`, err);
       return { complaints: [], total: 0 };
     }),
   ]);
 
+  // Fetch full details with line items for all sales orders so line items are ready
+  const detailedOrders = await Promise.all(
+    rawSalesOrders.map((so) =>
+      so.items && so.items.length > 0 ? so : getSalesOrder(so.name).catch(() => so)
+    )
+  );
+
   return {
     customer,
     opportunities: related.opportunities || [],
-    salesOrders: salesOrders || [],
+    salesOrders: detailedOrders || [],
     deliveryNotes: deliveryNotes || [],
     complaints: complaintsRes.complaints || [],
     contacts: related.contacts || [],

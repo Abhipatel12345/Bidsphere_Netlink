@@ -12,8 +12,10 @@ import {
   Copy,
   Check,
   Building2,
+  Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { submitSalesOrder } from "../../api/crm";
 import type { OrderDeliveryTrackingRecord } from "../../types/crm";
 
 export type MilestoneStatus = "completed" | "in_progress" | "pending" | "delayed";
@@ -165,6 +167,7 @@ interface Props {
   onClose: () => void;
   record?: OrderDeliveryTrackingRecord;
   onOpenComplaint?: (record: OrderDeliveryTrackingRecord) => void;
+  onOrderSubmitted?: () => void;
 }
 
 export default function OrderDeliveryDetailModal({
@@ -172,8 +175,10 @@ export default function OrderDeliveryDetailModal({
   onClose,
   record,
   onOpenComplaint,
+  onOrderSubmitted,
 }: Props) {
   const [copied, setCopied] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [activeTab, setActiveTab] = useState<"milestones" | "dispatches" | "items">("milestones");
 
   if (!isOpen || !record) return null;
@@ -182,6 +187,21 @@ export default function OrderDeliveryDetailModal({
   const { milestones, currentStepIndex } = computeDeliveryMilestones(record);
 
   const percentComplete = orderedQty > 0 ? Math.min(100, Math.round((deliveredQty / orderedQty) * 100)) : 0;
+
+  const handleSubmitOrder = async () => {
+    setIsSubmittingOrder(true);
+    try {
+      await submitSalesOrder(salesOrder.name);
+      toast.success(`Sales Order ${salesOrder.name} submitted successfully!`);
+      onOrderSubmitted?.();
+      onClose();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to submit Sales Order.";
+      toast.error(msg);
+    } finally {
+      setIsSubmittingOrder(false);
+    }
+  };
 
   const handleCopyId = () => {
     void navigator.clipboard.writeText(salesOrder.name);
@@ -686,7 +706,8 @@ export default function OrderDeliveryDetailModal({
                   No line items found for this sales order.
                 </div>
               ) : (
-                <div className="overflow-x-auto rounded-xl border border-neutral-200">
+                <div className="space-y-4">
+                  <div className="overflow-x-auto rounded-xl border border-neutral-200">
                   <table className="w-full text-left text-xs">
                     <thead className="border-b border-neutral-200 bg-neutral-50 font-semibold text-neutral-700">
                       <tr>
@@ -755,7 +776,38 @@ export default function OrderDeliveryDetailModal({
                     </tbody>
                   </table>
                 </div>
-              )}
+
+                {/* Pricing & Terms Summary */}
+                <div className="flex flex-col items-end pt-3 border-t border-neutral-200 space-y-1.5 text-xs">
+                  <div className="flex justify-between w-64 text-neutral-600">
+                    <span>Net Total:</span>
+                    <span className="font-semibold text-neutral-900">
+                      ${(Number(salesOrder.net_total) || Number(salesOrder.grand_total)).toLocaleString()}
+                    </span>
+                  </div>
+                  {salesOrder.total_taxes_and_charges !== undefined && Number(salesOrder.total_taxes_and_charges) > 0 && (
+                    <div className="flex justify-between w-64 text-neutral-600">
+                      <span>Taxes & Charges:</span>
+                      <span className="font-medium text-neutral-700">
+                        ${Number(salesOrder.total_taxes_and_charges).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between w-64 pt-1.5 border-t border-neutral-200 text-sm font-bold text-neutral-900">
+                    <span>Grand Total:</span>
+                    <span className="text-primary-700 font-mono">
+                      ${Number(salesOrder.grand_total).toLocaleString()} {salesOrder.currency || "USD"}
+                    </span>
+                  </div>
+                  {salesOrder.payment_terms_template && (
+                    <div className="flex justify-between w-64 text-[11px] text-neutral-500 pt-1">
+                      <span>Payment Terms:</span>
+                      <span className="font-medium text-neutral-700">{salesOrder.payment_terms_template}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             </div>
           )}
         </div>
@@ -786,13 +838,36 @@ export default function OrderDeliveryDetailModal({
             </Link>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg bg-neutral-900 px-4 py-2 text-xs font-semibold text-white hover:bg-neutral-800 transition-colors shadow-xs"
-          >
-            Close Details
-          </button>
+          <div className="flex items-center gap-2.5">
+            {(salesOrder.docstatus === 0 || salesOrder.status === "Draft") && (
+              <button
+                type="button"
+                disabled={isSubmittingOrder}
+                onClick={handleSubmitOrder}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm"
+              >
+                {isSubmittingOrder ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Submit Sales Order
+                  </>
+                )}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg bg-neutral-900 px-4 py-2 text-xs font-semibold text-white hover:bg-neutral-800 transition-colors shadow-xs"
+            >
+              Close Details
+            </button>
+          </div>
         </div>
       </div>
     </div>
