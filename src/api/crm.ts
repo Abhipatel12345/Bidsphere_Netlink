@@ -15,6 +15,13 @@ import type {
   SalesStage,
   Territory,
   UTMSource,
+  BrandDoc,
+  ComplaintDoc,
+  ComplaintFilterParams,
+  ComplaintStatus,
+  DeliveryNoteDoc,
+  OrderDeliveryTrackingRecord,
+  SalesOrderDoc,
 } from "../types/crm";
 
 export interface PaginationParams {
@@ -287,7 +294,8 @@ export async function getDocTypeMeta(doctype: string): Promise<DocTypeMeta> {
 
 export async function searchLinkField(
   doctype: string,
-  txt = ""
+  txt = "",
+  signal?: AbortSignal
 ): Promise<LinkOption[]> {
   if (!doctype) return [];
 
@@ -308,7 +316,7 @@ export async function searchLinkField(
         page_length: 100,
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { _silent: true } as any
+      { _silent: true, signal } as any
     );
 
     // Axios interceptor in erpnext.ts automatically unpacks response.data.message
@@ -1333,7 +1341,6 @@ export async function uploadCrmFile(
     "/api/method/upload_file",
     formData,
     {
-      headers: { "Content-Type": "multipart/form-data" },
       timeout: 60_000,
     }
   );
@@ -1392,8 +1399,12 @@ export async function advanceOpportunityStage(payload: StageTransitionPayload): 
     }
   }
 
-  // Sequence safety check: Ensure the deal is at fromStage (or already at toStage)
-  if (currentOpp.sales_stage !== fromStage && currentOpp.sales_stage !== toStage) {
+  // Sequence safety check: Ensure the deal is at fromStage (or already at toStage), normalized
+  const normCurrent = normalizeStageName(currentOpp.sales_stage);
+  const normFrom = normalizeStageName(fromStage);
+  const normTo = normalizeStageName(toStage);
+
+  if (normCurrent !== normFrom && normCurrent !== normTo) {
     throw new Error(
       `Cannot advance from "${fromStage}" to "${toStage}". Current stage in ERPNext is "${currentOpp.sales_stage}".`
     );
@@ -1511,4 +1522,487 @@ export async function getStageTransitionHistory(opportunityName: string): Promis
   }
 
   return history.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Customer Complaints (Issue DocType) API
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getComplaints(
+  params: ComplaintFilterParams = {}
+): Promise<{ complaints: ComplaintDoc[]; total: number }> {
+  const filters: [string, string, string, unknown][] = [];
+
+  if (params.status) {
+    filters.push(["Issue", "status", "=", params.status]);
+  }
+  if (params.priority) {
+    filters.push(["Issue", "priority", "=", params.priority]);
+  }
+  if (params.issue_type) {
+    filters.push(["Issue", "issue_type", "=", params.issue_type]);
+  }
+  if (params.customer) {
+    filters.push(["Issue", "customer", "=", params.customer]);
+  }
+  if (params.search?.trim()) {
+    const q = `%${params.search.trim()}%`;
+    filters.push(["Issue", "subject", "like", q]);
+  }
+
+  const queryParams = new URLSearchParams({
+    fields: JSON.stringify([
+      "name",
+      "subject",
+      "customer",
+      "customer_name",
+      "raised_by",
+      "status",
+      "priority",
+      "issue_type",
+      "description",
+      "resolution_details",
+      "opening_date",
+      "opening_time",
+      "sla_resolution_date",
+      "resolution_time",
+      "lead",
+      "contact",
+      "company",
+      "attachment",
+      "creation",
+      "modified",
+      "owner",
+      "modified_by",
+    ]),
+    order_by: params.order_by ?? "modified desc",
+    limit_start: String(params.limit_start ?? 0),
+    limit_page_length: String(params.limit_page_length ?? 50),
+  });
+
+  if (filters.length > 0) {
+    queryParams.set("filters", JSON.stringify(filters));
+  }
+
+  const [listRes, countRes] = await Promise.all([
+    erpnext.get<unknown>(`/api/resource/Issue?${queryParams.toString()}`),
+    erpnext
+      .get<unknown>(
+        `/api/method/frappe.client.get_count?doctype=Issue${
+          filters.length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(filters))}` : ""
+        }`
+      )
+      .catch(() => null),
+  ]);
+
+  const rawComplaints = parseRecords<ComplaintDoc & { sla_resolution_date?: string }>(listRes);
+  const complaints: ComplaintDoc[] = rawComplaints.map((c) => ({
+    ...c,
+    resolution_date: c.sla_resolution_date || c.resolution_date,
+  }));
+  const total = countRes !== null ? parseCount(countRes) : complaints.length;
+
+  return { complaints, total };
+}
+
+export async function getComplaint(name: string): Promise<ComplaintDoc> {
+  const res = await erpnext.get<unknown>(`/api/resource/Issue/${encodeURIComponent(name)}`);
+  const doc = parseDoc<ComplaintDoc & { sla_resolution_date?: string }>(res);
+  if (doc) {
+    doc.resolution_date = doc.sla_resolution_date || doc.resolution_date;
+  }
+  return doc;
+}
+
+export async function createComplaint(
+  data: Partial<ComplaintDoc> | Record<string, unknown>
+): Promise<ComplaintDoc> {
+  const cleanData: Record<string, unknown> = { ...data };
+  if ("resolution_date" in cleanData) {
+    if (!cleanData.sla_resolution_date) {
+      cleanData.sla_resolution_date = cleanData.resolution_date;
+    }
+    delete cleanData.resolution_date;
+  }
+  const payload = {
+    doctype: "Issue",
+    status: "Open",
+    priority: "Medium",
+    company: "Netlink",
+    ...cleanData,
+  };
+  try {
+    const res = await erpnext.post<unknown>(
+      "/api/resource/Issue",
+      payload,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { _silent: true } as any
+    );
+    const doc = parseDoc<ComplaintDoc & { sla_resolution_date?: string }>(res);
+    if (doc) {
+      doc.resolution_date = doc.sla_resolution_date || doc.resolution_date;
+    }
+    return doc;
+  } catch (err) {
+    const msg = extractFrappeErrorMessage(err);
+    throw new Error(msg);
+  }
+}
+
+export async function updateComplaint(
+  name: string,
+  data: Partial<ComplaintDoc> | Record<string, unknown>
+): Promise<ComplaintDoc> {
+  const cleanData: Record<string, unknown> = { ...data };
+  if ("resolution_date" in cleanData) {
+    if (!cleanData.sla_resolution_date) {
+      cleanData.sla_resolution_date = cleanData.resolution_date;
+    }
+    delete cleanData.resolution_date;
+  }
+  try {
+    const res = await erpnext.put<unknown>(
+      `/api/resource/Issue/${encodeURIComponent(name)}`,
+      cleanData,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      { _silent: true } as any
+    );
+    const doc = parseDoc<ComplaintDoc & { sla_resolution_date?: string }>(res);
+    if (doc) {
+      doc.resolution_date = doc.sla_resolution_date || doc.resolution_date;
+    }
+    return doc;
+  } catch (err) {
+    const msg = extractFrappeErrorMessage(err);
+    throw new Error(msg);
+  }
+}
+
+export async function updateComplaintStatus(
+  name: string,
+  status: ComplaintStatus,
+  resolution_details?: string
+): Promise<ComplaintDoc> {
+  const updateData: Partial<ComplaintDoc> = { status };
+  if (resolution_details !== undefined) {
+    updateData.resolution_details = resolution_details;
+  }
+  if (status === "Resolved" || status === "Closed") {
+    const nowIso = new Date().toISOString().replace("T", " ").substring(0, 19);
+    updateData.sla_resolution_date = nowIso;
+    updateData.resolution_date = nowIso;
+  }
+  return updateComplaint(name, updateData);
+}
+
+export async function deleteComplaint(name: string): Promise<void> {
+  await erpnext.delete(`/api/resource/Issue/${encodeURIComponent(name)}`);
+}
+
+export async function getIssueTypes(): Promise<string[]> {
+  try {
+    const res = await erpnext.get<unknown>(
+      '/api/resource/Issue%20Type?fields=["name"]&limit_page_length=100'
+    );
+    const records = parseRecords<{ name: string }>(res);
+    return records.map((r) => r.name);
+  } catch {
+    return [
+      "Product Quality Defect",
+      "Delivery Delay",
+      "Damaged Goods in Transit",
+      "Billing & Invoicing Discrepancy",
+      "Packaging & Labeling Issue",
+      "Wrong Item Shipped",
+    ];
+  }
+}
+
+export async function getIssuePriorities(): Promise<string[]> {
+  try {
+    const res = await erpnext.get<unknown>(
+      '/api/resource/Issue%20Priority?fields=["name"]&limit_page_length=100'
+    );
+    const records = parseRecords<{ name: string }>(res);
+    return records.map((r) => r.name);
+  } catch {
+    return ["Low", "Medium", "High", "Urgent"];
+  }
+}
+
+export async function getComplaintMetrics(): Promise<{
+  total: number;
+  open: number;
+  inProgress: number;
+  resolved: number;
+  closed: number;
+  byCategory: Record<string, number>;
+  byPriority: Record<string, number>;
+}> {
+  const { complaints, total } = await getComplaints({ limit_page_length: 500 });
+  let open = 0;
+  let inProgress = 0;
+  let resolved = 0;
+  let closed = 0;
+  const byCategory: Record<string, number> = {};
+  const byPriority: Record<string, number> = {};
+
+  for (const c of complaints) {
+    if (c.status === "Open") open++;
+    else if (c.status === "Replied" || c.status === "On Hold") inProgress++;
+    else if (c.status === "Resolved") resolved++;
+    else if (c.status === "Closed") closed++;
+
+    const cat = c.issue_type || "Uncategorized";
+    byCategory[cat] = (byCategory[cat] || 0) + 1;
+
+    const prio = c.priority || "Medium";
+    byPriority[prio] = (byPriority[prio] || 0) + 1;
+  }
+
+  return { total, open, inProgress, resolved, closed, byCategory, byPriority };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sales Orders & Delivery Notes API
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getSalesOrders(params: {
+  customer?: string;
+  status?: string;
+  limit_page_length?: number;
+} = {}): Promise<SalesOrderDoc[]> {
+  const filters: [string, string, string, unknown][] = [];
+  if (params.customer) {
+    filters.push(["Sales Order", "customer", "=", params.customer]);
+  }
+  if (params.status) {
+    filters.push(["Sales Order", "status", "=", params.status]);
+  }
+
+  const queryParams = new URLSearchParams({
+    fields: JSON.stringify([
+      "name",
+      "customer",
+      "customer_name",
+      "transaction_date",
+      "delivery_date",
+      "status",
+      "delivery_status",
+      "per_delivered",
+      "per_billed",
+      "grand_total",
+      "currency",
+      "company",
+      "order_type",
+      "creation",
+      "modified",
+    ]),
+    order_by: "transaction_date desc",
+    limit_page_length: String(params.limit_page_length ?? 100),
+  });
+
+  if (filters.length > 0) {
+    queryParams.set("filters", JSON.stringify(filters));
+  }
+
+  const res = await erpnext.get<unknown>(`/api/resource/Sales%20Order?${queryParams.toString()}`);
+  return parseRecords<SalesOrderDoc>(res);
+}
+
+export async function getSalesOrder(name: string): Promise<SalesOrderDoc> {
+  const res = await erpnext.get<unknown>(`/api/resource/Sales%20Order/${encodeURIComponent(name)}`);
+  return parseDoc<SalesOrderDoc>(res);
+}
+
+export async function getDeliveryNotes(params: {
+  customer?: string;
+  status?: string;
+  limit_page_length?: number;
+} = {}): Promise<DeliveryNoteDoc[]> {
+  const filters: [string, string, string, unknown][] = [];
+  if (params.customer) {
+    filters.push(["Delivery Note", "customer", "=", params.customer]);
+  }
+  if (params.status) {
+    filters.push(["Delivery Note", "status", "=", params.status]);
+  }
+
+  const queryParams = new URLSearchParams({
+    fields: JSON.stringify([
+      "name",
+      "customer",
+      "customer_name",
+      "posting_date",
+      "posting_time",
+      "status",
+      "grand_total",
+      "currency",
+      "company",
+      "lr_no",
+      "vehicle_no",
+      "transporter_name",
+      "creation",
+      "modified",
+    ]),
+    order_by: "posting_date desc",
+    limit_page_length: String(params.limit_page_length ?? 100),
+  });
+
+  if (filters.length > 0) {
+    queryParams.set("filters", JSON.stringify(filters));
+  }
+
+  const res = await erpnext.get<unknown>(`/api/resource/Delivery%20Note?${queryParams.toString()}`);
+  return parseRecords<DeliveryNoteDoc>(res);
+}
+
+export async function getDeliveryNote(name: string): Promise<DeliveryNoteDoc> {
+  const res = await erpnext.get<unknown>(`/api/resource/Delivery%20Note/${encodeURIComponent(name)}`);
+  return parseDoc<DeliveryNoteDoc>(res);
+}
+
+export async function getOrderDeliveryTracking(params: {
+  customer?: string;
+  search?: string;
+} = {}): Promise<OrderDeliveryTrackingRecord[]> {
+  const [salesOrders, deliveryNotes] = await Promise.all([
+    getSalesOrders({ customer: params.customer, limit_page_length: 100 }),
+    getDeliveryNotes({ customer: params.customer, limit_page_length: 100 }),
+  ]);
+
+  // Fetch full details with line items for all orders
+  const detailedOrders = await Promise.all(
+    salesOrders.map((so) => getSalesOrder(so.name).catch(() => so))
+  );
+
+  const detailedDNs = await Promise.all(
+    deliveryNotes.map((dn) => getDeliveryNote(dn.name).catch(() => dn))
+  );
+
+  const results: OrderDeliveryTrackingRecord[] = detailedOrders.map((so) => {
+    // Find all delivery notes linked to this sales order
+    const linkedDNs = detailedDNs.filter((dn) =>
+      dn.items?.some((item) => item.against_sales_order === so.name)
+    );
+
+    let orderedQty = 0;
+    let deliveredQty = 0;
+
+    for (const item of so.items || []) {
+      orderedQty += Number(item.qty) || 0;
+      deliveredQty += Number(item.delivered_qty) || 0;
+    }
+
+    // Fallback if line-item delivered_qty not populated: calculate from linked DNs
+    if (deliveredQty === 0 && linkedDNs.length > 0) {
+      for (const dn of linkedDNs) {
+        for (const item of dn.items || []) {
+          if (item.against_sales_order === so.name) {
+            deliveredQty += Number(item.qty) || 0;
+          }
+        }
+      }
+    }
+
+    const pendingQty = Math.max(0, orderedQty - deliveredQty);
+
+    let overallStatus: "Pending" | "Partially Delivered" | "Delivered" | "Delayed" = "Pending";
+    if (so.delivery_status === "Fully Delivered" || (orderedQty > 0 && deliveredQty >= orderedQty)) {
+      overallStatus = "Delivered";
+    } else if (deliveredQty > 0) {
+      overallStatus = "Partially Delivered";
+    } else if (so.delivery_date && new Date(so.delivery_date) < new Date()) {
+      overallStatus = "Delayed";
+    }
+
+    const latestDispatchDate = linkedDNs[0]?.posting_date;
+
+    return {
+      salesOrder: so,
+      deliveryNotes: linkedDNs,
+      orderedQty,
+      deliveredQty,
+      pendingQty,
+      overallDeliveryStatus: overallStatus,
+      latestDispatchDate,
+      expectedDeliveryDate: so.delivery_date,
+    };
+  });
+
+  if (params.search?.trim()) {
+    const q = params.search.trim().toLowerCase();
+    return results.filter(
+      (r) =>
+        r.salesOrder.name.toLowerCase().includes(q) ||
+        r.salesOrder.customer.toLowerCase().includes(q) ||
+        (r.salesOrder.customer_name && r.salesOrder.customer_name.toLowerCase().includes(q)) ||
+        r.deliveryNotes.some((dn) => dn.name.toLowerCase().includes(q))
+    );
+  }
+
+  return results;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Customer 360 Unified Record
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getCustomer360(customerName: string): Promise<{
+  customer: Customer;
+  opportunities: Opportunity[];
+  salesOrders: SalesOrderDoc[];
+  deliveryNotes: DeliveryNoteDoc[];
+  complaints: ComplaintDoc[];
+  contacts: Contact[];
+  addresses: Address[];
+}> {
+  // 1. Fetch primary customer record first (must succeed)
+  const customer = await getCustomer(customerName);
+
+  // 2. Fetch all related sub-resources in parallel with graceful fallbacks
+  // so an issue or permission restriction on an optional sub-resource never crashes the customer view
+  const [related, salesOrders, deliveryNotes, complaintsRes] = await Promise.all([
+    getCustomerRelatedRecords(customerName).catch((err) => {
+      console.warn(`[Customer360] Could not load related opps/contacts for ${customerName}:`, err);
+      return { opportunities: [], contacts: [], addresses: [] };
+    }),
+    getSalesOrders({ customer: customerName }).catch((err) => {
+      console.warn(`[Customer360] Could not load sales orders for ${customerName}:`, err);
+      return [];
+    }),
+    getDeliveryNotes({ customer: customerName }).catch((err) => {
+      console.warn(`[Customer360] Could not load delivery notes for ${customerName}:`, err);
+      return [];
+    }),
+    getComplaints({ customer: customerName }).catch((err) => {
+      console.warn(`[Customer360] Could not load complaints for ${customerName}:`, err);
+      return { complaints: [], total: 0 };
+    }),
+  ]);
+
+  return {
+    customer,
+    opportunities: related.opportunities || [],
+    salesOrders: salesOrders || [],
+    deliveryNotes: deliveryNotes || [],
+    complaints: complaintsRes.complaints || [],
+    contacts: related.contacts || [],
+    addresses: related.addresses || [],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Brands API
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getBrands(): Promise<BrandDoc[]> {
+  try {
+    const res = await erpnext.get<unknown>(
+      '/api/resource/Brand?fields=["name","brand","description","image"]&limit_page_length=100'
+    );
+    return parseRecords<BrandDoc>(res);
+  } catch {
+    return [];
+  }
 }

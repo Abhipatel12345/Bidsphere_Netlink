@@ -182,6 +182,9 @@ const CampaignsListPage = lazy(() => import("./pages/crm/CampaignsListPage"));
 const CampaignDetailPage = lazy(() => import("./pages/crm/CampaignDetailPage"));
 const CrmReportsPage = lazy(() => import("./pages/crm/CrmReportsPage"));
 const CrmSetupPage = lazy(() => import("./pages/crm/CrmSetupPage"));
+const ComplaintsListPage = lazy(() => import("./pages/crm/ComplaintsListPage"));
+const OrderDeliveryTrackingPage = lazy(() => import("./pages/crm/OrderDeliveryTrackingPage"));
+const CrmDataImportPage = lazy(() => import("./pages/crm/CrmDataImportPage"));
 
 import { useAuthStore } from "./store/authStore";
 import { getRFQSchema } from "./api/rfqSchema";
@@ -474,6 +477,9 @@ function App() {
             <Route path="/crm/campaigns" element={<CampaignsListPage />} />
             <Route path="/crm/campaigns/:name" element={<CampaignDetailPage />} />
             <Route path="/crm/reports" element={<CrmReportsPage />} />
+            <Route path="/crm/complaints" element={<ComplaintsListPage />} />
+            <Route path="/crm/deliveries" element={<OrderDeliveryTrackingPage />} />
+            <Route path="/crm/import" element={<CrmDataImportPage />} />
             <Route path="/crm/setup" element={<CrmSetupPage />} />
 
             {/* Inventory */}

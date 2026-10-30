@@ -246,3 +246,193 @@ export async function getPipelineStageDistribution(): Promise<PipelineStageSumma
 
   return summary;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Unified CRM Command Center Metrics
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ComplaintsOverviewMetrics {
+  total: number;
+  open: number;
+  inProgress: number;
+  resolved: number;
+  closed: number;
+  overdue: number;
+  byCategory: { name: string; count: number }[];
+  byPriority: { name: string; count: number }[];
+}
+
+export interface DeliveryOverviewMetrics {
+  totalOrders: number;
+  pendingDeliveries: number;
+  partialDeliveries: number;
+  deliveredOrders: number;
+  delayedDeliveries: number;
+  totalOrderValue: number;
+  fulfillmentRate: number;
+}
+
+export interface CustomerOverviewMetrics {
+  totalCustomers: number;
+  newCustomersLastMonth: number;
+  totalPipelineValue: number;
+  topCustomersByPipeline: { name: string; customer_name: string; value: number }[];
+}
+
+export async function getComplaintsDashboardMetrics(): Promise<ComplaintsOverviewMetrics> {
+  const res = await erpnext.get<unknown>(
+    '/api/resource/Issue?fields=["name","status","priority","issue_type","opening_date","creation"]&limit_page_length=500'
+  );
+  const records = parseRecords<{
+    name: string;
+    status: string;
+    priority?: string;
+    issue_type?: string;
+    opening_date?: string;
+    creation?: string;
+  }>(res);
+
+  let open = 0;
+  let inProgress = 0;
+  let resolved = 0;
+  let closed = 0;
+  let overdue = 0;
+  const catMap: Record<string, number> = {};
+  const prioMap: Record<string, number> = {};
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  for (const c of records) {
+    if (c.status === "Open") {
+      open++;
+      // Check overdue if open > 7 days
+      const createdDate = c.opening_date ? new Date(c.opening_date) : c.creation ? new Date(c.creation) : null;
+      if (createdDate && createdDate < sevenDaysAgo) overdue++;
+    } else if (c.status === "Replied" || c.status === "On Hold") {
+      inProgress++;
+    } else if (c.status === "Resolved") {
+      resolved++;
+    } else if (c.status === "Closed") {
+      closed++;
+    }
+
+    const cat = c.issue_type || "Uncategorized";
+    catMap[cat] = (catMap[cat] || 0) + 1;
+
+    const prio = c.priority || "Medium";
+    prioMap[prio] = (prioMap[prio] || 0) + 1;
+  }
+
+  const byCategory = Object.entries(catMap).map(([name, count]) => ({ name, count }));
+  const byPriority = Object.entries(prioMap).map(([name, count]) => ({ name, count }));
+
+  return {
+    total: records.length,
+    open,
+    inProgress,
+    resolved,
+    closed,
+    overdue,
+    byCategory,
+    byPriority,
+  };
+}
+
+export async function getDeliveryDashboardMetrics(): Promise<DeliveryOverviewMetrics> {
+  const soRes = await erpnext.get<unknown>(
+    '/api/resource/Sales%20Order?fields=["name","status","delivery_status","per_delivered","grand_total","delivery_date"]&limit_page_length=500'
+  );
+
+  const orders = parseRecords<{
+    name: string;
+    status: string;
+    delivery_status?: string;
+    per_delivered?: number;
+    grand_total?: number;
+    delivery_date?: string;
+  }>(soRes);
+
+  let pending = 0;
+  let partial = 0;
+  let delivered = 0;
+  let delayed = 0;
+  let totalOrderValue = 0;
+  const now = new Date();
+
+  for (const o of orders) {
+    totalOrderValue += Number(o.grand_total) || 0;
+    const per = Number(o.per_delivered) || 0;
+
+    if (o.delivery_status === "Fully Delivered" || per >= 100) {
+      delivered++;
+    } else if (per > 0 || o.delivery_status === "Partially Delivered") {
+      partial++;
+    } else {
+      pending++;
+    }
+
+    if (per < 100 && o.delivery_date && new Date(o.delivery_date) < now) {
+      delayed++;
+    }
+  }
+
+  const fulfillmentRate = orders.length > 0 ? Math.round((delivered / orders.length) * 100) : 0;
+
+  return {
+    totalOrders: orders.length,
+    pendingDeliveries: pending,
+    partialDeliveries: partial,
+    deliveredOrders: delivered,
+    delayedDeliveries: delayed,
+    totalOrderValue,
+    fulfillmentRate,
+  };
+}
+
+export async function getCustomerDashboardMetrics(): Promise<CustomerOverviewMetrics> {
+  const oneMonthAgo = getOneMonthAgoDate();
+
+  const [custRes, newCustRes, oppsRes] = await Promise.all([
+    erpnext.get<unknown>(
+      '/api/resource/Customer?fields=["name","customer_name","customer_group","territory"]&limit_page_length=500'
+    ),
+    erpnext.get<unknown>(
+      `/api/method/frappe.client.get_count?doctype=Customer&filters=${encodeURIComponent(
+        JSON.stringify([["creation", ">=", oneMonthAgo]])
+      )}`
+    ).catch(() => 0),
+    erpnext.get<unknown>(
+      '/api/resource/Opportunity?fields=["name","party_name","opportunity_amount"]&limit_page_length=500'
+    ),
+  ]);
+
+  const customers = parseRecords<{ name: string; customer_name?: string }>(custRes);
+  const opps = parseRecords<{ name: string; party_name?: string; opportunity_amount?: number }>(oppsRes);
+
+  const custPipelineMap: Record<string, { customer_name: string; value: number }> = {};
+  let totalPipelineValue = 0;
+
+  for (const o of opps) {
+    const amt = Number(o.opportunity_amount) || 0;
+    totalPipelineValue += amt;
+    if (o.party_name) {
+      if (!custPipelineMap[o.party_name]) {
+        custPipelineMap[o.party_name] = { customer_name: o.party_name, value: 0 };
+      }
+      custPipelineMap[o.party_name].value += amt;
+    }
+  }
+
+  const topCustomersByPipeline = Object.entries(custPipelineMap)
+    .map(([name, data]) => ({ name, customer_name: data.customer_name, value: data.value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  return {
+    totalCustomers: customers.length,
+    newCustomersLastMonth: parseCount(newCustRes),
+    totalPipelineValue,
+    topCustomersByPipeline,
+  };
+}

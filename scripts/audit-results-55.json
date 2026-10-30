@@ -1,0 +1,700 @@
+{
+  "total": 69,
+  "passed": 67,
+  "failed": 1,
+  "blocked": 1,
+  "notExecuted": 0,
+  "passPct": "97.1",
+  "results": [
+    {
+      "id": "TC-AUTH-01",
+      "moduleName": "Authentication",
+      "feature": "ERPNext Token Auth Validation",
+      "expected": "Logged user returned as abhayp@netlink.com",
+      "actual": "Logged in as abhayp@netlink.com",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-AUTH-02",
+      "moduleName": "Authentication",
+      "feature": "Vite Dev Proxy Token Injection",
+      "expected": "Proxy injects Authorization token and returns logged user",
+      "actual": "Proxy returned abhayp@netlink.com",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-AUTH-03",
+      "moduleName": "Authentication",
+      "feature": "7 CRM Granular Role Architectures",
+      "expected": "All 7 Massy CRM roles configured with distinct landing paths and permissions",
+      "actual": "Verified: sales_rep, sales_mgr, brand_mgr, cs_rep, cs_mgr, management, crm_admin configured in roles.ts and dashboardRoles.ts",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-AUTH-04",
+      "moduleName": "Authentication",
+      "feature": "ERPQ and CRM Role Partitioning in Notifications",
+      "expected": "Role-allowed modules correctly partitioned without TypeScript errors",
+      "actual": "ROLE_ALLOWED_MODULES and CrmRoles union fully aligned",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-AUTH-05",
+      "moduleName": "Authentication",
+      "feature": "Unauthenticated Request Rejection / Guest Restriction",
+      "expected": "Unauthenticated request rejected or returned Guest",
+      "actual": "Unauthenticated request safely blocked or treated as Guest",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-ERPQ-01",
+      "moduleName": "ERPQ / Sourcing",
+      "feature": "RFQ Listing & DocType Connectivity",
+      "expected": "List of RFQ records returned",
+      "actual": "Retrieved 5 RFQ records",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-ERPQ-02",
+      "moduleName": "ERPQ / Sourcing",
+      "feature": "RFQ Detail & Line Item Inspection",
+      "expected": "Line items and schedule dates retrieved for RFQ",
+      "actual": "RFQ PUR-RFQ-2026-00001 has 2 line items",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-ERPQ-03",
+      "moduleName": "ERPQ / Purchasing",
+      "feature": "Purchase Order Listing & Supplier Linkage",
+      "expected": "List of Purchase Orders returned with supplier reference",
+      "actual": "Retrieved 5 PO records",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-ERPQ-04",
+      "moduleName": "ERPQ / Purchasing",
+      "feature": "PO Grand Total & Status Attributes",
+      "expected": "grand_total and status populated",
+      "actual": "PO PUR-ORD-2026-00001 grand_total: $800, status: Completed",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-ERPQ-05",
+      "moduleName": "ERPQ / Warehouse",
+      "feature": "Goods Receipt Note (Purchase Receipt) Listing",
+      "expected": "List of Purchase Receipts returned",
+      "actual": "Retrieved 5 GRN records",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-ERPQ-06",
+      "moduleName": "ERPQ / Warehouse",
+      "feature": "GRN Posting Date Future Date Clamping Logic",
+      "expected": "Clamps future PO date to serverToday so ERPNext does not reject future-dated GRN",
+      "actual": "Verified in vitest: All 37 tests passing cleanly with server-clamping business rule aligned",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-ERPQ-07",
+      "moduleName": "ERPQ / Sourcing",
+      "feature": "Supplier Master Records",
+      "expected": "Supplier records retrieved",
+      "actual": "Retrieved 5 Suppliers",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-ERPQ-08",
+      "moduleName": "ERPQ / Inventory",
+      "feature": "Item Master Records & Inventory Stock",
+      "expected": "Item records retrieved with stock_uom",
+      "actual": "Retrieved 5 Items",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-ERPQ-09",
+      "moduleName": "ERPQ / Budget & Finance",
+      "feature": "Cost Center Master Records",
+      "expected": "Cost Centers retrieved",
+      "actual": "Retrieved 4 Cost Centers",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-ERPQ-10",
+      "moduleName": "ERPQ / Finance",
+      "feature": "Payment Entry DocType Access",
+      "expected": "Payment Entries retrieved",
+      "actual": "Retrieved 5 Payment Entries",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-ERPQ-11",
+      "moduleName": "ERPQ / Admin",
+      "feature": "Audit Trail & Activity Log Retrieval",
+      "expected": "Activity Logs retrieved",
+      "actual": "Retrieved 5 Activity Logs",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CRM-01",
+      "moduleName": "CRM / Leads",
+      "feature": "Lead Listing & utm_source Extraction",
+      "expected": "Leads list returned with utm_source, company_name, email_id",
+      "actual": "Retrieved 5 Leads",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CRM-02",
+      "moduleName": "CRM / Leads",
+      "feature": "Lead Creation & Deletion Lifecycle",
+      "expected": "Lead created and deleted cleanly without orphan data",
+      "actual": "Created and cleaned up lead: CRM-LEAD-2026-00046",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CRM-03",
+      "moduleName": "CRM / Leads",
+      "feature": "Lead Qualification & Status Workflow",
+      "expected": "Lead statuses include Lead, Qualified, or Converted",
+      "actual": "Status lifecycle verified across 5 records",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CRM-04",
+      "moduleName": "CRM / Opportunities",
+      "feature": "Opportunity Listing & Sales Stage",
+      "expected": "Opportunities retrieved with title, party_name, sales_stage, and opportunity_amount",
+      "actual": "Retrieved 5 Opportunities",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CRM-05",
+      "moduleName": "CRM / Opportunities",
+      "feature": "ERPNext Canonical Sales Stages Retrieval",
+      "expected": "Minimum 7 sales stages available in ERPNext",
+      "actual": "9 stages found: Prospecting, Qualification, Needs Analysis, Value Proposition...",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CRM-06",
+      "moduleName": "CRM / Opportunities",
+      "feature": "Opportunity Probability & Closing Date Attributes",
+      "expected": "Probability and expected_closing fields accessible",
+      "actual": "Attributes verified on 5 records",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CRM-07",
+      "moduleName": "CRM / Opportunities",
+      "feature": "Opportunity Line Items Association",
+      "expected": "Opportunity line items retrieved or accessible",
+      "actual": "Items field present on CRM-OPP-2026-00001: 0 items",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CRM-08",
+      "moduleName": "CRM / Customers",
+      "feature": "Customer Directory Listing & Filters",
+      "expected": "Customer records retrieved with name, group, territory",
+      "actual": "Retrieved 5 Customers",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CRM-09",
+      "moduleName": "CRM / Customers",
+      "feature": "Customer 360° Profile Linked Aggregation",
+      "expected": "Returns linked Opportunities, Sales Orders, Delivery Notes, and Issues for customer",
+      "actual": "Linked: 2 Opps, 2 Orders, 1 DNs, 3 Issues",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CRM-10",
+      "moduleName": "CRM / Contacts",
+      "feature": "Contact Record Directory & Linkage",
+      "expected": "Contacts retrieved",
+      "actual": "Retrieved 5 Contacts",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CRM-11",
+      "moduleName": "CRM / Addresses",
+      "feature": "Address Record Directory & Linkage",
+      "expected": "Addresses retrieved",
+      "actual": "Retrieved 5 Addresses",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CRM-12",
+      "moduleName": "CRM / Campaigns",
+      "feature": "Campaign Listing & DocType Integrity",
+      "expected": "Campaign list retrieved",
+      "actual": "Retrieved 5 Campaigns",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CRM-13",
+      "moduleName": "CRM / Brands",
+      "feature": "Massy Brand Masters Retrieval",
+      "expected": "Minimum 5 Massy Brands configured in ERPNext",
+      "actual": "Retrieved 5 Brands: Massy Consumer Goods, Massy Energy & Chemicals, Massy Healthcare & Pharma, Massy Industrial Equipment, Massy Motors & Automotive",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-STG-01",
+      "moduleName": "CRM / Pipeline",
+      "feature": "Pipeline Stage Distribution & Counts",
+      "expected": "Stage counts aggregated across all open and closed opportunities",
+      "actual": "Distributed across 8 stages",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-STG-02",
+      "moduleName": "CRM / Pipeline",
+      "feature": "Stage Name Normalization in Stage Transition Guard",
+      "expected": "Stage comparison normalizes whitespace around slashes before validating stage transition",
+      "actual": "Normalized 'Proposal / Price Quote' and 'Proposal/Price Quote' to 'proposal/price quote' in advanceOpportunityStage",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-STG-03",
+      "moduleName": "CRM / Pipeline",
+      "feature": "Mandatory Stage Transition Note Form Validation",
+      "expected": "Blocks submission when transition note is empty or whitespace",
+      "actual": "Validation successfully rejects empty transition note",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-STG-04",
+      "moduleName": "CRM / Pipeline",
+      "feature": "Persistent Stage Transition Audit Trail via Comment DocType",
+      "expected": "Stage transition history stored and verified via Frappe add_comment",
+      "actual": "Created and cleaned up audit comment: 5g578u1fb3",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-STG-05",
+      "moduleName": "CRM / Pipeline",
+      "feature": "Stage Transition History Regex Parser",
+      "expected": "Correctly extracts fromStage and toStage from Comment content HTML",
+      "actual": "Extracted: Prospecting -> Qualification",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DOC-01",
+      "moduleName": "Documents & Files",
+      "feature": "File Upload via /api/method/upload_file",
+      "expected": "File uploaded and file_url returned",
+      "actual": "Uploaded file: audit_test_doc.txt -> URL: /files/audit_test_doc.txt",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DOC-02",
+      "moduleName": "Documents & Files",
+      "feature": "Axios Multipart Boundary Injection Inspection",
+      "expected": "Axios lets the browser generate Content-Type with multipart boundary automatically",
+      "actual": "Explicit multipart header removed in uploadCrmFile (src/api/crm.ts); native boundary preserved",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DOC-03",
+      "moduleName": "Documents & Files",
+      "feature": "PDF Export Engine Integration",
+      "expected": "jspdf and jspdf-autotable bundled and available for voucher and report PDF exports",
+      "actual": "Verified in package.json and vite.config.ts vendor chunk 'vendor-pdf'",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DOC-04",
+      "moduleName": "Documents & Files",
+      "feature": "File DocType Access & Deletion Rights",
+      "expected": "File records queryable and deletable",
+      "actual": "File DocType accessible",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DOC-05",
+      "moduleName": "Documents & Files",
+      "feature": "Browser Interactive PDF Canvas Rendering",
+      "expected": "Interactive visual render of PDF preview canvas in browser viewport",
+      "actual": "Direct browser rendering blocked in headless container due to Playwright driver 404 download restriction",
+      "status": "BLOCKED",
+      "errorDetails": "Playwright driver binary 404 on offline container environment",
+      "rootCause": "Automated browser runner requires external binary download which is blocked in current sandbox."
+    },
+    {
+      "id": "TC-DRP-01",
+      "moduleName": "Dropdowns & Link Fields",
+      "feature": "Customer Link Field Filtered Search",
+      "expected": "Filtered search returns matching customer",
+      "actual": "Found matching customer: Titan Enterprise Solutions",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DRP-02",
+      "moduleName": "Dropdowns & Link Fields",
+      "feature": "Item Link Field Search & Dropdown",
+      "expected": "Items dropdown returns master records",
+      "actual": "Retrieved 5 selectable items",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DRP-03",
+      "moduleName": "Dropdowns & Link Fields",
+      "feature": "Lead Link Field Search & Dropdown",
+      "expected": "Leads dropdown returns records",
+      "actual": "Retrieved 5 leads",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DRP-04",
+      "moduleName": "Dropdowns & Link Fields",
+      "feature": "Sales Order Link Field Dropdown",
+      "expected": "Sales Orders dropdown returns records",
+      "actual": "Retrieved 5 orders",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DRP-05",
+      "moduleName": "Dropdowns & Link Fields",
+      "feature": "Async Search Race Condition Cancellation (AbortController)",
+      "expected": "Typing in DocTypeLinkSelect passes AbortSignal to cancel previous pending requests",
+      "actual": "AbortSignal wired in DocTypeLinkSelect and searchLinkField in crm.ts",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CMP-01",
+      "moduleName": "Complaints Management",
+      "feature": "Complaints (Issue) Listing & Field Mapping",
+      "expected": "List of customer complaints with status, priority, and category",
+      "actual": "Retrieved 7 complaints",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CMP-02",
+      "moduleName": "Complaints Management",
+      "feature": "Issue Type Master Categories",
+      "expected": "Standard categories retrieved for complaint dropdown",
+      "actual": "Found 6 Issue Types: Product Quality Defect, Delivery Delay, Damaged Goods in Transit",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CMP-03",
+      "moduleName": "Complaints Management",
+      "feature": "Issue Priority Master Records",
+      "expected": "Issue priorities Low, Medium, High, Urgent available",
+      "actual": "Retrieved 4 Priorities: Low, Medium, High, Urgent",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CMP-04",
+      "moduleName": "Complaints Management",
+      "feature": "Customer-to-Complaint Relational Linkage",
+      "expected": "Complaints filtered by customer return correct matches",
+      "actual": "Found 3 complaints for customer",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CMP-05",
+      "moduleName": "Complaints Management",
+      "feature": "Complaint Lifecycle (Open -> Resolved -> Cleanup)",
+      "expected": "Complaint created, resolved, and audited cleanly",
+      "actual": "Successfully exercised lifecycle on ISS-2026-00008",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-CMP-06",
+      "moduleName": "Complaints Management",
+      "feature": "Customer 360 Complaints Tab Aggregation",
+      "expected": "Customer 360 view renders complaints list with priority badge, status, and log complaint modal shortcut",
+      "actual": "Verified in CustomerDetailPage.tsx and getCustomer360 API",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DEL-01",
+      "moduleName": "Delivery Tracking",
+      "feature": "Sales Order Delivery Status & Percentage Calculation",
+      "expected": "Sales Orders expose delivery_status and per_delivered metrics",
+      "actual": "Found 5 orders with accurate delivery status",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DEL-02",
+      "moduleName": "Delivery Tracking",
+      "feature": "Delivery Note Line-Item Against Sales Order Linkage",
+      "expected": "Delivery Note item lines with item_code, qty, and against_sales_order",
+      "actual": "DN MAT-DN-2026-00001 has 2 item lines linked to SO: SAL-ORD-2026-00001",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DEL-03",
+      "moduleName": "Delivery Tracking",
+      "feature": "Order-to-Delivery Aggregation Service",
+      "expected": "Aggregates orders with linked delivery notes, computing pendingQty and status",
+      "actual": "Aggregated 5 orders with 3 delivery notes",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DEL-04",
+      "moduleName": "Delivery Tracking",
+      "feature": "Partial Delivery Computation Logic",
+      "expected": "Correctly flags orders as 'Partially Delivered' when 0 < deliveredQty < orderedQty",
+      "actual": "Partial delivery calculation verified",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DEL-05",
+      "moduleName": "Delivery Tracking",
+      "feature": "Delayed Delivery Detection Logic",
+      "expected": "Correctly flags undelivered orders with delivery_date in past as Delayed",
+      "actual": "Delayed shipment calculation verified",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DSH-01",
+      "moduleName": "Dashboards & Reports",
+      "feature": "Multi-Domain Dashboard Metric Counts",
+      "expected": "Aggregates live counts across Leads, Opportunities, Customers, and Issues",
+      "actual": "All count queries resolved successfully",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DSH-02",
+      "moduleName": "Dashboards & Reports",
+      "feature": "Complaints Operational KPI Breakdown",
+      "expected": "Calculates Open vs Resolved complaint counts accurately",
+      "actual": "Total: 7, Open: 3, Resolved/Closed: 3",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DSH-03",
+      "moduleName": "Dashboards & Reports",
+      "feature": "Delivery Operational Metrics Breakdown",
+      "expected": "Calculates Fully Delivered vs Pending vs Partially Delivered orders",
+      "actual": "Orders analyzed: 5",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DSH-04",
+      "moduleName": "Dashboards & Reports",
+      "feature": "Standardized CSV Export Serializer",
+      "expected": "Generates valid CSV formatted content with header and data rows",
+      "actual": "CSV string validated successfully",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-DSH-05",
+      "moduleName": "Dashboards & Reports",
+      "feature": "Report Date Range Filtering Execution",
+      "expected": "Date filters correctly narrow down ERPNext record sets",
+      "actual": "Returned 5 records within date filter",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-IMP-01",
+      "moduleName": "Data Consolidation",
+      "feature": "Spreadsheet Import Duplicate Detection",
+      "expected": "Detects existing Customer in ERPNext before allowing duplicate creation",
+      "actual": "Duplicate detection identified existing customer: Titan Enterprise Solutions",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-IMP-02",
+      "moduleName": "Data Consolidation",
+      "feature": "Mandatory Field Validation in Import Parser",
+      "expected": "Rejects records lacking mandatory customer_name or lead_name",
+      "actual": "Mandatory validation passed",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-IMP-03",
+      "moduleName": "Data Consolidation",
+      "feature": "CSV Parser & Schema Mapper",
+      "expected": "Parses CSV headers and maps data lines correctly into import records",
+      "actual": "CSV parser validated successfully",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-STA-01",
+      "moduleName": "Codebase & Build",
+      "feature": "TypeScript Strict Compilation (tsc -b)",
+      "expected": "Clean compilation with zero TypeScript errors",
+      "actual": "Verified in npm run build: tsc -b passed cleanly with zero type errors",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-STA-02",
+      "moduleName": "Codebase & Build",
+      "feature": "Vite Production Rollup Bundler",
+      "expected": "Bundle builds all chunks without unresolved symbols",
+      "actual": "Verified in npm run build: Successfully built in 24.82s into dist/ directory",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-STA-03",
+      "moduleName": "Codebase & Build",
+      "feature": "ESLint Static Analysis & React Hooks Rules",
+      "expected": "Zero ESLint syntax and hook purity errors",
+      "actual": "ESLint reported 155 errors and 437 warnings (e.g. react-hooks/set-state-in-effect in VoucherDetailPage.tsx, purity in SupplierVoucherDetailPage.tsx, prefer-const)",
+      "status": "FAIL",
+      "errorDetails": "155 errors including set-state-in-effect and Date.now in render",
+      "rootCause": "Legacy components in vouchers and supplier portal have non-idiomatic useEffect setState calls and un-memoized Date.now calls."
+    },
+    {
+      "id": "TC-NAV-01",
+      "moduleName": "Navigation & Routing",
+      "feature": "CRM Route Registration in App.tsx",
+      "expected": "Routes /crm/dashboard, /crm/pipeline, /crm/opportunities, /crm/customers, /crm/complaints, /crm/deliveries, /crm/import registered",
+      "actual": "All 7 new CRM routes verified in App.tsx router configuration",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-NAV-02",
+      "moduleName": "Navigation & Routing",
+      "feature": "ERPQ and CRM Route Coexistence",
+      "expected": "Existing procurement routes (/rfq, /purchase-orders, /grn, /vouchers) remain intact and fully functional",
+      "actual": "Routes coexist cleanly without overlapping path prefixes or routing hijack",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    },
+    {
+      "id": "TC-NAV-03",
+      "moduleName": "Navigation & Routing",
+      "feature": "Deep-link Customer URL Decoding",
+      "expected": "Correctly decodes customer name with spaces from route params",
+      "actual": "Decoded 'Titan%20Enterprise%20Solutions' to 'Titan Enterprise Solutions'",
+      "status": "PASS",
+      "errorDetails": null,
+      "rootCause": null
+    }
+  ]
+}

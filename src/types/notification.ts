@@ -88,6 +88,13 @@ export const ROLE_ALLOWED_MODULES: Record<
   ]),
   warehouse: new Set(["PO Ready for GRN", "GRN", "Inventory"]),
   crm: new Set(["CRM", "System", "Workflow"]),
+  sales_rep: new Set(["CRM", "System", "Workflow"]),
+  sales_mgr: new Set(["CRM", "System", "Workflow"]),
+  brand_mgr: new Set(["CRM", "System", "Workflow"]),
+  cs_rep: new Set(["CRM", "System", "Workflow"]),
+  cs_mgr: new Set(["CRM", "System", "Workflow"]),
+  management: new Set(["CRM", "System", "Workflow"]),
+  crm_admin: new Set(["CRM", "System", "Workflow", "Audit", "Users"]),
 };
 
 export const SUPPLIER_ALLOWED_MODULES = new Set<NotificationModule>([

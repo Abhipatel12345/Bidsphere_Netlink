@@ -25,7 +25,7 @@ export default function DocTypeLinkSelect({
 }: DocTypeLinkSelectProps) {
   const { data: options = [], isLoading } = useQuery({
     queryKey: ["doctype-link-options", targetDocType],
-    queryFn: () => searchLinkField(targetDocType),
+    queryFn: ({ signal }) => searchLinkField(targetDocType, "", signal),
     enabled: Boolean(targetDocType),
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,

@@ -14,7 +14,20 @@ import type { NavChild, NavGroup, NavItem } from "../utils/routes";
 import { NAV_GROUPS } from "../utils/routes";
 
 /** Application roles — mapped from ERPNext login email or ERPNext roles. */
-export type AppRole = "admin" | "procurement" | "finance" | "warehouse" | "legal" | "crm";
+export type AppRole =
+  | "admin"
+  | "procurement"
+  | "finance"
+  | "warehouse"
+  | "legal"
+  | "crm"
+  | "sales_rep"
+  | "sales_mgr"
+  | "brand_mgr"
+  | "cs_rep"
+  | "cs_mgr"
+  | "management"
+  | "crm_admin";
 
 export const ROLE_LABELS: Record<AppRole, string> = {
   admin: "Administrator",
@@ -23,6 +36,13 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   warehouse: "Warehouse Manager",
   legal: "Legal Reviewer",
   crm: "CRM Manager",
+  sales_rep: "Sales Representative",
+  sales_mgr: "Sales Manager",
+  brand_mgr: "Brand Manager",
+  cs_rep: "Customer Service Representative",
+  cs_mgr: "Customer Service Manager",
+  management: "Management / Executive Viewer",
+  crm_admin: "CRM Administrator",
 };
 
 /** Default landing route after login per role. */
@@ -33,6 +53,13 @@ export const ROLE_HOME: Record<AppRole, string> = {
   warehouse: "/dashboard",
   legal: "/sourcing/legal-reviews",
   crm: "/crm/dashboard",
+  sales_rep: "/crm/pipeline",
+  sales_mgr: "/crm/dashboard",
+  brand_mgr: "/crm/dashboard",
+  cs_rep: "/crm/complaints",
+  cs_mgr: "/crm/complaints",
+  management: "/crm/dashboard",
+  crm_admin: "/crm/dashboard",
 };
 
 /** Known role users (email → role). Comparison is case-insensitive. */
@@ -43,6 +70,13 @@ export const ROLE_USER_EMAILS: Record<string, AppRole> = {
   "warehouse@netlink.com": "warehouse",
   "legal@netlink.com": "legal",
   "crm@netlink.com": "crm",
+  "sales@massy.com": "sales_rep",
+  "salesmgr@massy.com": "sales_mgr",
+  "brand@massy.com": "brand_mgr",
+  "support@massy.com": "cs_rep",
+  "csmgr@massy.com": "cs_mgr",
+  "management@massy.com": "management",
+  "crmadmin@massy.com": "crm_admin",
 };
 
 /**
@@ -62,11 +96,15 @@ export const ERPNEXT_ROLE_MAP: Record<string, AppRole> = {
   "Stock User": "warehouse",
   "Warehouse Manager": "warehouse",
   "Legal Reviewer": "legal",
-  "Sales Manager": "crm",
-  "Sales User": "crm",
-  "Sales Master Manager": "crm",
-  "CRM Manager": "crm",
-  "CRM User": "crm",
+  "Sales Manager": "sales_mgr",
+  "Sales User": "sales_rep",
+  "Sales Master Manager": "sales_mgr",
+  "CRM Manager": "crm_admin",
+  "CRM User": "sales_rep",
+  "Customer Service": "cs_rep",
+  "Support Team": "cs_rep",
+  "Brand Manager": "brand_mgr",
+  "Executive": "management",
 };
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -166,14 +204,17 @@ const SUPPLIERS_CHILDREN: NavChild[] = [
 
 const CRM_CHILDREN: NavChild[] = [
   { label: "Dashboard", to: "/crm/dashboard" },
+  { label: "Sales Pipeline", to: "/crm/pipeline" },
   { label: "Leads", to: "/crm/leads" },
   { label: "Opportunities", to: "/crm/opportunities" },
-  { label: "Sales Pipeline", to: "/crm/pipeline" },
-  { label: "Customers", to: "/crm/customers" },
+  { label: "Customers (360°)", to: "/crm/customers" },
+  { label: "Customer Complaints", to: "/crm/complaints" },
+  { label: "Order & Delivery Tracking", to: "/crm/deliveries" },
   { label: "Contacts", to: "/crm/contacts" },
   { label: "Addresses", to: "/crm/addresses" },
   { label: "Campaigns", to: "/crm/campaigns" },
-  { label: "Reports", to: "/crm/reports" },
+  { label: "Reports & Analytics", to: "/crm/reports" },
+  { label: "Data Consolidation", to: "/crm/import" },
   { label: "Masters & Setup", to: "/crm/setup" },
 ];
 
@@ -196,13 +237,48 @@ interface RoleNavConfig {
 }
 
 const ROLE_NAV_CONFIG: Record<AppRole, RoleNavConfig> = {
-  // Admin — governance, user access, audit, system administration, and CRM oversight.
+  // Admin — full governance & CRM
   admin: {
     modules: ["admin-audit", "crm"],
     p2pChildren: [],
   },
-  // CRM Manager — Leads, Opportunities, Pipeline, Customers, Reports, Setup.
+  // CRM Administrator
+  crm_admin: {
+    modules: ["crm", "admin-audit"],
+    p2pChildren: [],
+  },
+  // CRM Manager (legacy alias)
   crm: {
+    modules: ["crm"],
+    p2pChildren: [],
+  },
+  // Sales Representative
+  sales_rep: {
+    modules: ["crm"],
+    p2pChildren: [],
+  },
+  // Sales Manager
+  sales_mgr: {
+    modules: ["crm"],
+    p2pChildren: [],
+  },
+  // Brand Manager
+  brand_mgr: {
+    modules: ["crm"],
+    p2pChildren: [],
+  },
+  // Customer Service Representative
+  cs_rep: {
+    modules: ["crm"],
+    p2pChildren: [],
+  },
+  // Customer Service Manager
+  cs_mgr: {
+    modules: ["crm"],
+    p2pChildren: [],
+  },
+  // Management Viewer
+  management: {
     modules: ["crm"],
     p2pChildren: [],
   },

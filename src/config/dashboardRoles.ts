@@ -177,11 +177,13 @@ const FINANCE_QUICK_ACTIONS: DashboardQuickAction[] = [
   },
 ];
 
+type CrmRoles = "crm" | "sales_rep" | "sales_mgr" | "brand_mgr" | "cs_rep" | "cs_mgr" | "management" | "crm_admin";
+
 /** Dashboard title, subtitle, and badge copy per authenticated role. */
 export const DASHBOARD_BY_ROLE: Record<AppRole, RoleDashboardConfig> = {
   admin: {
     title: "Admin Dashboard",
-    subtitle: "Executive procurement control center",
+    subtitle: "Executive procurement & CRM control center",
     roleLabel: ROLE_LABELS.admin,
     statusLabel: "Live",
   },
@@ -210,10 +212,52 @@ export const DASHBOARD_BY_ROLE: Record<AppRole, RoleDashboardConfig> = {
     statusLabel: "Legal",
   },
   crm: {
-    title: "CRM Manager Dashboard",
+    title: "CRM Command Center",
     subtitle: "Track leads, deals, sales pipeline and customer revenue",
     roleLabel: ROLE_LABELS.crm,
     statusLabel: "CRM Live",
+  },
+  sales_rep: {
+    title: "Sales Representative Workspace",
+    subtitle: "Manage assigned leads, deals and customer outreach",
+    roleLabel: ROLE_LABELS.sales_rep,
+    statusLabel: "Sales Field",
+  },
+  sales_mgr: {
+    title: "Sales Manager Command Center",
+    subtitle: "Team pipeline, opportunity conversion and target tracking",
+    roleLabel: ROLE_LABELS.sales_mgr,
+    statusLabel: "Sales Management",
+  },
+  brand_mgr: {
+    title: "Brand Manager Performance Center",
+    subtitle: "Brand-wise pipeline, product sales and customer feedback",
+    roleLabel: ROLE_LABELS.brand_mgr,
+    statusLabel: "Brand Hub",
+  },
+  cs_rep: {
+    title: "Customer Service Helpdesk",
+    subtitle: "Manage customer complaints, tickets and delivery queries",
+    roleLabel: ROLE_LABELS.cs_rep,
+    statusLabel: "Support Active",
+  },
+  cs_mgr: {
+    title: "Customer Service Command Center",
+    subtitle: "Monitor team complaint resolution, SLA compliance and feedback",
+    roleLabel: ROLE_LABELS.cs_mgr,
+    statusLabel: "Service Management",
+  },
+  management: {
+    title: "Executive Management Portal",
+    subtitle: "Consolidated organizational pipeline, orders and service health",
+    roleLabel: ROLE_LABELS.management,
+    statusLabel: "Executive",
+  },
+  crm_admin: {
+    title: "CRM Administration Center",
+    subtitle: "Manage users, configurations, imports and CRM integrity",
+    roleLabel: ROLE_LABELS.crm_admin,
+    statusLabel: "Admin Live",
   },
 };
 
@@ -226,7 +270,7 @@ export const SUPPLIER_DASHBOARD_CONFIG: RoleDashboardConfig = {
 };
 
 const EXECUTIVE_LAYOUT_BY_ROLE: Record<
-  Exclude<AppRole, "warehouse" | "legal" | "crm">,
+  Exclude<AppRole, "warehouse" | "legal" | CrmRoles>,
   ExecutiveDashboardLayout
 > = {
   admin: {
@@ -269,14 +313,14 @@ export function getDashboardConfig(role: AppRole): RoleDashboardConfig {
 }
 
 export function getExecutiveDashboardLayout(
-  role: Exclude<AppRole, "warehouse" | "legal" | "crm">
+  role: Exclude<AppRole, "warehouse" | "legal" | CrmRoles>
 ): ExecutiveDashboardLayout {
   return EXECUTIVE_LAYOUT_BY_ROLE[role] ?? EXECUTIVE_LAYOUT_BY_ROLE.admin;
 }
 
 export function filterActivityByRole(
   items: ActivityFeedItem[],
-  role: Exclude<AppRole, "warehouse" | "legal" | "crm">
+  role: Exclude<AppRole, "warehouse" | "legal" | CrmRoles>
 ): ActivityFeedItem[] {
   const { activityTypes } = getExecutiveDashboardLayout(role);
   if (activityTypes === "all") return items;

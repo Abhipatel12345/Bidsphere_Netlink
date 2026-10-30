@@ -99,9 +99,13 @@ describe("compareERPNextDates", () => {
 });
 
 describe("resolveGrnPostingDate", () => {
-  it("uses PO date when today is earlier", () => {
-    expect(resolveGrnPostingDate("2026-06-19", "2026-06-11")).toBe("2026-06-19");
-    expect(resolveGrnPostingDate("06/11/2026", "06/10/2026")).toBe("2026-06-11");
+  it("clamps to serverToday when PO date is in the future", () => {
+    expect(resolveGrnPostingDate("2026-06-19", "2026-06-11")).toBe("2026-06-11");
+    expect(resolveGrnPostingDate("06/11/2026", "06/10/2026")).toBe("2026-06-10");
+  });
+
+  it("uses PO date when browser today is earlier and no serverToday cap", () => {
+    expect(resolveGrnPostingDate("2026-06-19", null, "2026-06-11")).toBe("2026-06-19");
   });
 
   it("uses today when today is on or after PO date", () => {

@@ -23,6 +23,13 @@ export default function CrmReportsPage() {
   const [fromDate, setFromDate] = useState(defaultDates.from_date);
   const [toDate, setToDate] = useState(defaultDates.to_date);
 
+  const [selectedCategory, setSelectedCategory] = useState<"All" | "Sales" | "Complaints" | "Deliveries">("All");
+
+  const filteredReports = useMemo(() => {
+    if (selectedCategory === "All") return AVAILABLE_CRM_REPORTS;
+    return AVAILABLE_CRM_REPORTS.filter((r) => r.category === selectedCategory);
+  }, [selectedCategory]);
+
   const currentMeta =
     AVAILABLE_CRM_REPORTS.find((r) => r.id === selectedReportId) || AVAILABLE_CRM_REPORTS[0];
 
@@ -180,17 +187,41 @@ export default function CrmReportsPage() {
       <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm space-y-4">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="md:col-span-1">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-500">
-              Select Report
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                Select Report
+              </label>
+              <div className="flex items-center gap-1">
+                {(["All", "Sales", "Complaints", "Deliveries"] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      const matching = cat === "All" ? AVAILABLE_CRM_REPORTS : AVAILABLE_CRM_REPORTS.filter((r) => r.category === cat);
+                      if (matching.length > 0 && !matching.some((m) => m.id === selectedReportId)) {
+                        setSelectedReportId(matching[0].id);
+                      }
+                    }}
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-semibold transition-colors ${
+                      selectedCategory === cat
+                        ? "bg-primary-600 text-white"
+                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
             <select
               value={selectedReportId}
               onChange={(e) => setSelectedReportId(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-neutral-300 bg-white py-2 px-3 text-xs font-semibold text-neutral-800 shadow-sm focus:border-primary-500 focus:outline-none"
+              className="mt-1.5 w-full rounded-lg border border-neutral-300 bg-white py-2 px-3 text-xs font-semibold text-neutral-800 shadow-sm focus:border-primary-500 focus:outline-none"
             >
-              {AVAILABLE_CRM_REPORTS.map((rep) => (
+              {filteredReports.map((rep) => (
                 <option key={rep.id} value={rep.id}>
-                  {rep.name}
+                  [{rep.category}] {rep.name}
                 </option>
               ))}
             </select>

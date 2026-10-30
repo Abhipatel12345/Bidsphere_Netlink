@@ -21,6 +21,12 @@ export type OpportunityStatus =
   | "Lost"
   | "Closed";
 
+export interface PaginationParams {
+  limit_start?: number;
+  limit_page_length?: number;
+  order_by?: string;
+}
+
 export interface CrmNote {
   name?: string;
   note: string;
@@ -295,5 +301,144 @@ export interface LinkOption {
   value: string;
   label: string;
   description?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Customer Complaints (ERPNext Issue DocType)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ComplaintStatus =
+  | "Open"
+  | "Replied"
+  | "On Hold"
+  | "Resolved"
+  | "Closed";
+
+export type ComplaintPriority = "Low" | "Medium" | "High" | "Urgent";
+
+export interface ComplaintDoc {
+  name: string;
+  subject: string;
+  customer?: string;
+  customer_name?: string;
+  raised_by?: string;
+  status: ComplaintStatus;
+  priority?: ComplaintPriority;
+  issue_type?: string;
+  description?: string;
+  resolution_details?: string;
+  opening_date?: string;
+  opening_time?: string;
+  sla_resolution_date?: string;
+  resolution_date?: string;
+  resolution_time?: number;
+  user_resolution_time?: number;
+  lead?: string;
+  contact?: string;
+  company?: string;
+  attachment?: string;
+  creation?: string;
+  modified?: string;
+  owner?: string;
+  modified_by?: string;
+  custom_sales_order?: string;
+  custom_delivery_note?: string;
+  custom_brand?: string;
+  custom_assigned_to?: string;
+}
+
+export interface ComplaintFilterParams extends PaginationParams {
+  search?: string;
+  status?: string;
+  priority?: string;
+  issue_type?: string;
+  customer?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sales Orders & Delivery Notes
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface SalesOrderItem {
+  name?: string;
+  item_code: string;
+  item_name?: string;
+  description?: string;
+  qty: number;
+  stock_uom?: string;
+  uom?: string;
+  rate: number;
+  amount: number;
+  delivered_qty?: number;
+  delivery_date?: string;
+  warehouse?: string;
+}
+
+export interface SalesOrderDoc {
+  name: string;
+  customer: string;
+  customer_name?: string;
+  transaction_date: string;
+  delivery_date?: string;
+  status: string;
+  delivery_status?: "Not Delivered" | "Partially Delivered" | "Fully Delivered" | string;
+  per_delivered?: number;
+  per_billed?: number;
+  grand_total: number;
+  currency: string;
+  company: string;
+  order_type?: string;
+  items: SalesOrderItem[];
+  creation?: string;
+  modified?: string;
+}
+
+export interface DeliveryNoteItem {
+  name?: string;
+  item_code: string;
+  item_name?: string;
+  description?: string;
+  qty: number;
+  uom?: string;
+  rate: number;
+  amount: number;
+  against_sales_order?: string;
+  so_detail?: string;
+}
+
+export interface DeliveryNoteDoc {
+  name: string;
+  customer: string;
+  customer_name?: string;
+  posting_date: string;
+  posting_time?: string;
+  status: string;
+  grand_total: number;
+  currency: string;
+  company: string;
+  items: DeliveryNoteItem[];
+  creation?: string;
+  modified?: string;
+  lr_no?: string;
+  vehicle_no?: string;
+  transporter_name?: string;
+}
+
+export interface OrderDeliveryTrackingRecord {
+  salesOrder: SalesOrderDoc;
+  deliveryNotes: DeliveryNoteDoc[];
+  orderedQty: number;
+  deliveredQty: number;
+  pendingQty: number;
+  overallDeliveryStatus: "Pending" | "Partially Delivered" | "Delivered" | "Delayed";
+  latestDispatchDate?: string;
+  expectedDeliveryDate?: string;
+}
+
+export interface BrandDoc {
+  name: string;
+  brand: string;
+  description?: string;
+  image?: string;
 }
 

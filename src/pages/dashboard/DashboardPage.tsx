@@ -48,7 +48,16 @@ export default function DashboardPage() {
     );
   }
 
-  if (role === "crm") {
+  if (
+    role === "crm" ||
+    role === "sales_rep" ||
+    role === "sales_mgr" ||
+    role === "brand_mgr" ||
+    role === "cs_rep" ||
+    role === "cs_mgr" ||
+    role === "management" ||
+    role === "crm_admin"
+  ) {
     return (
       <Suspense fallback={<DashFallback />}>
         <CrmDashboardPage />
